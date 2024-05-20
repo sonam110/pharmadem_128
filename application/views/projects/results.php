@@ -295,6 +295,15 @@ echo $diff->s.' Seconds';
              <th>Temp</th>
              <th>Temp</th>
              <?php } ?>
+              <?php if($row->solvent_type=="ph_12") { ?>
+              <th>Data @ (0.0, 0.1, 0.9)</th>
+             <th>Data @ (0.0, 0.25, 0.75)</th>
+             <th>Data @ (0.0, 0.5, 0.5)</th>
+             <th>Data @ (0.0, 0.75, 0.25)</th>
+             <th>Data @ (0.0, 0.9, 0.1)</th>
+             <th>Temp</th>
+             <th>Temp</th>
+             <?php } ?>
              
              
           </tr>
@@ -336,6 +345,13 @@ echo $diff->s.' Seconds';
              <?php } ?>
              <?php if($row->solvent_type=="Tertiary-16400") { ?>
              <td><?php echo $result['input_temp_10']; ?></td>
+             <td><?php echo $result['input_temp_50']; ?></td>
+             <?php } ?>
+             <?php if($row->solvent_type=="ph_12") { ?>
+             <td><?php echo $result['pure_data2']; ?></td>
+             <td><?php echo $result['pure_data3']; ?></td>
+             <td><?php echo $result['input_temp_10']; ?></td>
+             <td><?php echo $result['input_temp_20']; ?></td>
              <td><?php echo $result['input_temp_50']; ?></td>
              <?php } ?>
              

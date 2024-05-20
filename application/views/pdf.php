@@ -358,7 +358,7 @@ defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 		<br><br>
 		<div style="color: #0056b3;">
 			This is computer generated report using FormDEM software developed by PharmaDEM solutions
-			DO NOT COP
+			DO NOT COPY
 		</div>
 	</main>
 	

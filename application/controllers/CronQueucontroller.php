@@ -151,7 +151,7 @@ public function checkjob($id)
             //chmod("/home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src/opencosmorspy/$fullname", 0777);
             $contentf = $fname."\t".$Smile."\t".$mvalue;
             $ssh->exec('cd /home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src/opencosmorspy; touch '.$fullname.'; echo "'.$contentf.'" >> '.$fullname.'');
-            $ssh->exec('cd /home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src/opencosmorspy; nohup python3 ConformerGenerator.py --structures_file '.$fullname.' --n_cores=4 > t.log 2>&1 & echo $!');
+            $ssh->exec('cd /home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src/opencosmorspy; nohup python3 ConformerGenerator.py --structures_file '.$fullname.' --n_cores=16 > t.log 2>&1 & echo $!');
 
 
             $data = [
@@ -298,8 +298,6 @@ public function runact_newq($id) {
 }
 
 public function insertresultsAll($id){
-
-    
 
     $jobdetails  = $this->projects_model->getJobdetails1($id);
     $project_id  = $jobdetails[0]->project_id;

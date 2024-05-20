@@ -133,11 +133,11 @@ button:hover {
 <div class="">
 
 <select class="form-control" name="solvents" id="solvents">
-                                            <option value="">Select Job Type</option>
-                                            <option value="Pure_68">Pure_68</option>
-                                            <option value="Binary_1085">Binary_2278</option>
-                                            <option value="Tertiary-16400">Tertiary-50116</option>
-                                        </select>
+    <option value="">Select Job Type</option>
+    <option value="Pure_68">Pure_68</option>
+    <option value="Binary_1085">Binary_2278</option>
+    <option value="Tertiary-16400">Tertiary-50116</option>
+</select>
 
 </div>
 <br>

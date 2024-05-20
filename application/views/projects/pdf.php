@@ -7,7 +7,7 @@ defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 <html lang="en">
 <head>
 	<meta charset="utf-8">
-	<title>pharmadem</title>    
+	<title>SoluDEM</title>    
 	<link href='https://fonts.googleapis.com/css?family=Source Sans Pro' rel='stylesheet'><!-- Latest compiled and minified CSS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
 
@@ -308,7 +308,7 @@ defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 			<thead>
 				<tr>
 					<th class="desc">Id</th>
-					<th class="desc"><div>SS Name</div></th>
+					<th class="desc"><div>Solvent System</div></th>
 					<th class="qty">10 C_mg/ml</th>
 					<th class="qty">25 C_mg/ml</th>
 					<th class="qty">50 C_mg/ml</th>
@@ -317,20 +317,52 @@ defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 			</thead>
 			<tbody>
 				<?php if($cdata) { 
+
+					$pureDataArray = [
+			            'pure_data1' => '(0.0, 0.1, 0.9)',
+			            'pure_data2' => '(0.0, 0.25, 0.75)',
+			            'pure_data3' => '(0.0, 0.5, 0.5)',
+			            'pure_data4' => '(0.0, 0.75, 0.25)',
+			            'pure_data5' => '(0.0, 0.9, 0.1)',
+			        ];
+
+			        $terDataArray = [
+			            'pure_data1' => '(0.0, 0.1, 0.75, 0.15)',
+			            'pure_data2' => '(0.0, 0.25, 0.50, 0.25)',
+			            'pure_data3' => '(0.0, 0.5, 0.25, 0.25)'
+			        ];
 					?>
-					<?php foreach ($cdata as $key => $value): ?>
+					<?php foreach ($cdata as $key => $value): 
+						$solventName = $value['ssystem_name'];
+					//dd($value);
+         
+	            if ($value['result_type'] != "Pure_68" && $value['result_type'] != "Tertiary-16400") {
+	              
+	                $solventName = $solventName . "-" . str_replace("-", $pureDataArray[$value['wt_fraction']], $pureDataArray[$value['wt_fraction']]);
+
+
+	            } elseif ($value['result_type'] === "Tertiary-16400") {
+	              
+	                $solventName = $solventName . "-" . str_replace("-", $terDataArray[$value['wt_fraction']], $terDataArray[$value['wt_fraction']]);
+	            } else {
+	                $solventName = $value['ssystem_name'];
+	            }
+
+
+						?>
 						<tr>
 							<td class="desc"><?= $key+1;?></td>
-							<td class="desc">
+							<td class="desc"> <?=   $solventName  ?></td>
+							<!-- <td class="desc">
 								<?php 
 									echo $this->projects_model->getsolvent_byjbid($value['result_job_id']);
 								?> 
-							</td>
-							<td class="qty"> <?= number_format(((float)$value['10_cmgml']),2,'.','');?> </td>
+							</td> -->
+							<td class="qty"> <?= number_format(((float)$value['10_cmgml']),3,'.','');?> </td>
 					
-							<td class="qty"> <?= number_format(((float)$value['25_cmgml']),2,'.','');?> </td>
+							<td class="qty"> <?= number_format(((float)$value['25_cmgml']),3,'.','');?> </td>
 			
-							<td class="qty"> <?= number_format(((float)$value['50_cmgml']),2,'.','');?> </td>
+							<td class="qty"> <?= number_format(((float)$value['50_cmgml']),3,'.','');?> </td>
 						
 						</tr>
 					<?php endforeach ?>
@@ -384,8 +416,8 @@ defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 		</div>
 		<br><br>
 		<div style="color: #0056b3;">
-			This is computer generated report using FormDEM software developed by PharmaDEM solutions
-			DO NOT COP
+			This is computer generated report using SoluDEM software developed by PharmaDEM solutions
+			DO NOT COPY
 		</div>
 	</main>
 	

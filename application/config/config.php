@@ -90,6 +90,7 @@ $config['url_suffix'] = '';
 |
 */
 $config['language']	= 'en';
+$config['allowed_types'] = 'xlsx|xls';
 
 /*
 |--------------------------------------------------------------------------

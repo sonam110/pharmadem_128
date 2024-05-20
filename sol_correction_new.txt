@@ -1,0 +1,85 @@
+import pandas as pd
+import numpy as np
+from scipy.optimize import curve_fit
+from sklearn.metrics import mean_squared_error, r2_score
+import matplotlib.pyplot as plt
+
+# Function to read data
+filepath = '/home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src/opencosmorspy/test.xlsx'
+def load_data(filepath):
+    df = pd.read_excel(filepath, usecols="A:B", nrows=19)
+    df_new_predictions = pd.read_excel(filepath, usecols="B", skiprows=20, nrows=9980)
+    return df, df_new_predictions['Predicted']
+
+# Function to remove outliers
+def remove_outliers(df):
+    initial_size = len(df)
+    while True:
+        Q1 = df['Experimental'].quantile(0.25)
+        Q3 = df['Experimental'].quantile(0.75)
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        filtered = df[(df['Experimental'] >= lower_bound) & (df['Experimental'] <= upper_bound)]
+        if filtered.shape[0] == initial_size or filtered.shape[0] < 10:  # Ensure at least 10 datapoints remain
+            break
+        df = filtered
+        initial_size = filtered.shape[0]
+    return df
+
+# Regression model
+def linear_model(x, a, b):
+    return a * x + b
+
+# Function to calculate statistics
+def calculate_statistics(y_true, y_pred):
+    rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+    r2 = r2_score(y_true, y_pred)
+    return rmse, r2
+
+# Main script
+def main(filepath):
+    # Load the data
+    df, new_predictions = load_data(filepath)
+    original_df = df.copy()
+
+    # Remove outliers until R^2 > 0.8 or minimum number of data points reached
+    r2 = 0
+    iteration = 0
+    while r2 < 0.8:
+        filtered_df = remove_outliers(df)
+        popt, _ = curve_fit(linear_model, filtered_df['Experimental'], filtered_df['Predicted'])
+        predicted = linear_model(filtered_df['Experimental'], *popt)
+        _, r2 = calculate_statistics(filtered_df['Predicted'], predicted)
+        if len(filtered_df) <= 10 or iteration > 10:  # Avoid too many iterations or too few points
+            break
+        df = filtered_df
+        iteration += 1
+
+    a, b = popt
+    print(f"Regression Equation after {iteration} iterations: y = {a:.4f} * x + {b:.4f}")
+    rmse, r2 = calculate_statistics(filtered_df['Predicted'], predicted)
+    print(f"RMSE: {rmse:.4f}, R^2: {r2:.4f}")
+
+    # Apply the model to correct new predicted data
+    corrected_new_predictions = linear_model(new_predictions, *popt)
+
+    # Plot corrected predictions
+    plt.figure(figsize=(10, 5))
+    plt.subplot(1, 2, 1)
+    plt.scatter(original_df['Experimental'], original_df['Predicted'], c='blue', label='Original Data')
+    plt.plot(filtered_df['Experimental'], predicted, 'r-', label=f'Fitted Line: R^2={r2:.2f}')
+    plt.xlabel('Experimental Data')
+    plt.ylabel('Predicted Data')
+    plt.legend()
+    plt.title('Regression Fit with Outlier Removal')
+
+    plt.subplot(1, 2, 2)
+    plt.hist(corrected_new_predictions, bins=50, color='green')
+    plt.title('Histogram of Corrected Predictions')
+    plt.xlabel('Corrected Predicted Values')
+    plt.ylabel('Frequency')
+    plt.tight_layout()
+    plt.show()
+
+    return corrected_new_predictions

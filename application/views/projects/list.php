@@ -96,9 +96,9 @@ defined('BASEPATH') OR exit('No direct script access allowed'); ?>
                 <h3 class="card-title p-3"><?php echo lang('projects') ?></h3>
                 <div class="ml-auto p-2">
                     <?php if (hasPermissions('project_add')): ?>
-            <a href="<?php echo url('projects/killqueueall') ?>" class="btn btn-primary btn-sm"><span class="pr-1"></span> Kill all Queue Jobs </a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-					<a href="<?php echo url('projects/killall') ?>" class="btn btn-primary btn-sm"><span class="pr-1"></span> Kill all Active Jobs </a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-						<a href="<?php echo url('projects/del') ?>" class="btn btn-primary btn-sm"><span class="pr-1"></span> Kill DEM Jobs</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <a href="<?php echo url('projects/killqueueall') ?>" class="btn btn-primary btn-sm"><span class="pr-1"></span> Kill all Queue Jobs </a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+					<a href="<?php echo url('projects/killall') ?>" class="btn btn-primary btn-sm"><span class="pr-1"></span> Kill all Active Jobs </a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+						<a href="<?php echo url('projects/del') ?>" class="btn btn-primary btn-sm"><span class="pr-1"></span> Kill DEM Jobs</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                       <a href="<?php echo url('projects/add') ?>" class="btn btn-primary btn-sm"><span class="pr-1"><i class="fa fa-plus"></i></span> <?php echo lang('project_add') ?></a>
                     <?php endif ?>
                 </div>
@@ -174,7 +174,10 @@ defined('BASEPATH') OR exit('No direct script access allowed'); ?>
                       <td>
                         <?php
                         $checkjob = $this->projects_model->checkjobcompleted($row->id);
+                        $checkjobPh = $this->projects_model->checkPhjobcompleted($row->id);
                         $checkjobinserts = $this->projects_model->checkjobinserts($row->id);
+                        
+                        $checkjobphinserts = $this->projects_model->checkjobphinserts($row->id);
 
                         
                         /*$jobExistsq = $this->projects_model->checkJobExistsinQueue($row->id);
@@ -200,7 +203,10 @@ defined('BASEPATH') OR exit('No direct script access allowed'); ?>
                               
                           <?php endif; ?>
                                   
-                      <?php if($this->projects_model->checkactivityexists($row->id)) { ?>
+                      <?php if($this->projects_model->checkactivityexists($row->id)) { 
+
+
+                        ?>
                       <a href="<?php echo url('projects') ?>/results/<?php echo $row->id;?>" class="btn btn-success btn-sm" title="Check Results"><i class="fas fa-layer-group"></i></a>
                         <?php if($checkjob==0 ) {  ?>
                           <div id="loading-image" style="display:"><img src="<?php echo base_url();?>icons8-dots-loading.gif" /></div>
@@ -208,7 +214,7 @@ defined('BASEPATH') OR exit('No direct script access allowed'); ?>
                             <!-- /. <a href="<?php echo url('projects/createdata/'.$row->id) ?>" class="btn btn-sm btn-primary" title="Create Data" data-toggle="tooltip"><i class="fas fa-clipboard"></i></a>  -->
                            <!-- /. <a href="<?php echo url('projects/createdataforcharts/'.$row->id) ?>" class="btn btn-sm btn-primary" title="Create Data" data-toggle="tooltip"><i class="fas fa-plus"></i></a> -->
                        
-                           <?php if($checkjobinserts) {  ?>
+                           <?php if($checkjobinserts == true) {  ?>
 
 
                             <?php $opcheck = $this->projects_model->getprojectdetails($row->id); ?>
@@ -218,15 +224,47 @@ defined('BASEPATH') OR exit('No direct script access allowed'); ?>
                         <button class="button-90 btn btn-sm btn-primary" data-id="<?php echo $row->id;?>" title="Create Data" data-toggle="tooltip"><i class="fas fa-cogs"></i></button> 
 
                         <?php } ?>
+                        
                           <?php } else { ?>
 
                             <button class="button-80 btn btn-sm btn-primary" title="Create Data" data-toggle="tooltip"><i class="fas fa-plus"></i></button> 
 
+
                             <?php } ?>
+                             
+                            <a href="<?php echo url('projects/solubilityCorrection/'.$row->id) ?>" class="btn btn-sm btn-info" title="Solubility Correction" data-toggle="tooltip"><i class="fas fa-check"></i></a>
+
                            <div id="ptext"></div>
-                           <?php } } ?>
+                           <?php } } 
+
+
+                           ?>
+                           <?php
+                             $jobexist = $this->projects_model->getJobdetails($row->id);
+                           ?>
+                           <?php if ($jobexist) {
+                            ?>
+                                
+                                <?php  if($this->projects_model->checkjobphinsertornot($jobexist[0]->id)) { ?>
+                                <a href="<?php echo url('projects/showphcreateddata/'.$row->id) ?>" class="btn btn-sm btn-warning" title="Ph Show Data" data-toggle="tooltip"><i class="fas fa-list-alt"></i></a>
+                              <?php } else { ?>
+                              <?php if($this->projects_model->checkactivityphexists($row->id)) { ?>
+
+                                <a href="<?php echo url('projects') ?>/resultsph/<?php echo $row->id;?>" class="btn btn-danger btn-sm" title="Check Ph Results"><i class="fas fa-layer-group"></i></a>
+                                <?php if($checkjobPh==0 ) {  ?>
+                                  <div id="loading-image" style="display:"><img src="<?php echo base_url();?>icons8-dots-loading.gif" /></div>
+                                <?php }?>
+
+                               <button class="button-80-ph btn btn-sm btn-warning" title="Create PH Data" data-toggle="tooltip"><i class="fas fa-plus"></i></button> 
+                               <?php } }?>
+
+                           <a href="<?php echo url('projects/addSolubiltiy/'.$jobexist[0]->id) ?>" class="btn btn-sm btn-secondary" title="Add Solubility for Correction" data-toggle="tooltip"><i class="fa fa-edit"></i></a>
+                         <?php } ?>
+
+
                     </td>
                        
+
                       <!-- /.
                       <td>
                         <?php if (hasPermissions('users_edit')): ?>
@@ -366,6 +404,79 @@ $.ajax({
 
     }); 
   
+
+
+ // Attach click event listener to each button
+$('.button-80-ph').on('click', function() {
+
+  
+  var clickedButton = $(this);
+var progressBarHtml = '<div class="progress-bar"><div class="progress-bar-fill"></div></div>';
+
+var row = $(this).closest('tr');
+var data1 = row.find('td:nth-child(1)').text();
+//alert(data1);
+
+clickedButton.parent().html(progressBarHtml);
+$('#overlay').show();
+$.ajax({
+  url: '<?php echo url('projects/insertphresults10') ?>/'+data1,
+  type: 'post',
+  data: {
+    data1: data1
+  },
+  beforeSend: function() {
+    $('#processing-message').text('Temp 10 Processing...(dont press back button or refresh the page ...)');
+  },
+  async: true,
+  complete: function(response) {
+    clickedButton.parent().html('10 done');
+    console.log(response);
+    //$('#overlay').hide();
+    
+    // Make the next AJAX request for insertresults25
+    $.ajax({
+      url: '<?php echo url('projects/insertphresults25') ?>/'+data1,
+      type: 'post',
+      data: {
+        data1: data1
+      },
+      beforeSend: function() {
+    $('#processing-message').text('Temp 25 Processing...(dont press back button or refresh the page ...)');
+  },
+      async: true,
+      complete: function(response) {
+        clickedButton.parent().html('25 done');
+        console.log(response);
+        //$('#overlay').hide();
+        
+        // Make the final AJAX request for insertresults50
+        $.ajax({
+          url: '<?php echo url('projects/insertphresults50') ?>/'+data1,
+          type: 'post',
+          data: {
+            data1: data1
+          },
+          beforeSend: function() {
+    $('#processing-message').text('Temp 50 Processing...(dont press back button or refresh the page ...)');
+  },
+          async: true,
+          complete: function(response) {
+            clickedButton.parent().html('50 done');
+            console.log(response);
+            $('#overlay').hide();
+            location.reload();
+
+          }
+        });
+      }
+    });
+  }
+});
+
+     
+
+    }); 
 
 </script>
 

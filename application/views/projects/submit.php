@@ -194,62 +194,38 @@ color:#00f;
 <div class="info-box shadow-lg">
 
 <div class="info-box-content">
-<span class="info-box-text"><h3>Solubility</h3></span>
+<span class="info-box-text"><h3> Solubility</h3></span>
 
-    <div class="row mb-2">
+    <div class="row mb-2" >
+    
         <div class="col-md-auto text-right">Solvent Name</div>
-        <div class="col-md-2"><input type="text" name="s_name" class="form-control" placeholder=""></div>
+        <div class="col-md-2">
+           <select   class="form-control" name="s_name[]">
+            <option value="" selected disabled> Select Solvent</option>
+            <?php foreach ($cdata as $row): ?>
+            <option value="<?php echo $row->solvent1_name ?>" data-id="id1"><?php echo $row->s_id ?> . <?php echo $row->solvent1_name ?></option>
+            <?php endforeach ?>
+            
+          </select>
+       </div>
 
         <div class="col-md-auto text-right">Solubility Value</div>
-        <div class="col-md-2"><input type="text" name="s_value" class="form-control" placeholder=""></div>
+        <div class="col-md-2"><input type="text" name="s_value[]" class="form-control" placeholder=""></div>
 
-        <div class="col-md-auto text-right">Unit</div>
-        <div class="col-md-2"><input type="text" name="s_unit" class="form-control" placeholder=""></div>
+        <div class="col-md-auto text-right">MG/ML</div>
+        <div class="col-md-auto text-right">Temp</div>
+           <div class="col-md-2">
+               <select   class="form-control" name="temp[]" required>
+                <option value="10" > 10</option>
+                <option value="25" > 25</option>
+                <option value="50" > 50</option>
+              </select>
+           </div>
+        <button type="button"  class="btn btn-info" id="addButton">Add New</button>
+
     </div>
+    <div id="textBoxContainer"></div>
 
-    <div class="row mb-2">
-        <div class="col-md-auto text-right">Solvent Name</div>
-        <div class="col-md-2"><input type="text" name="s_name1" class="form-control" placeholder=""></div>
-
-        <div class="col-md-auto text-right">Solubility Value</div>
-        <div class="col-md-2"><input type="text" name="s_value1" class="form-control" placeholder=""></div>
-
-        <div class="col-md-auto text-right">Unit</div>
-        <div class="col-md-2"><input type="text" name="s_unit1" class="form-control" placeholder=""></div>
-    </div>
-
-    <div class="row mb-2">
-        <div class="col-md-auto text-right">Solvent Name</div>
-        <div class="col-md-2"><input type="text" name="s_name2" class="form-control" placeholder=""></div>
-
-        <div class="col-md-auto text-right">Solubility Value</div>
-        <div class="col-md-2"><input type="text" name="s_value2" class="form-control" placeholder=""></div>
-
-        <div class="col-md-auto text-right">Unit</div>
-        <div class="col-md-2"><input type="text" name="s_unit2" class="form-control" placeholder=""></div>
-    </div>
-
-    <div class="row mb-2">
-        <div class="col-md-auto text-right">Solvent Name</div>
-        <div class="col-md-2"><input type="text" name="s_name3" class="form-control" placeholder=""></div>
-
-        <div class="col-md-auto text-right">Solubility Value</div>
-        <div class="col-md-2"><input type="text" name="s_value3" class="form-control" placeholder=""></div>
-
-        <div class="col-md-auto text-right">Unit</div>
-        <div class="col-md-2"><input type="text" name="s_unit3" class="form-control" placeholder=""></div>
-    </div>
-
-    <div class="row mb-2">
-        <div class="col-md-auto text-right">Solvent Name</div>
-        <div class="col-md-2"><input type="text" name="s_name4" class="form-control" placeholder=""></div>
-
-        <div class="col-md-auto text-right">Solubility Value</div>
-        <div class="col-md-2"><input type="text" name="s_value4" class="form-control" placeholder=""></div>
-
-        <div class="col-md-auto text-right">Unit</div>
-        <div class="col-md-2"><input type="text" name="s_unit4" class="form-control" placeholder=""></div>
-    </div>
 
 </div>
 
@@ -424,4 +400,18 @@ function checkRecords() {
 
 </script>
 
+<script>
+    $(document).ready(function(){
+        // Add text box
+        $("#addButton").click(function(){
+            var textBoxHtml = '<div class="row mb-2 textBoxWrapper" > <div class="col-md-auto text-right">Solvent Name</div> <div class="col-md-2"> <select   class="form-control" name="s_name[]" required> <option value="" selected disabled> Select Solvent</option> <?php foreach ($cdata as $row): ?> <option value="<?php echo $row->s_id ?>" data-id="id1"><?php echo $row->s_id ?> . <?php echo $row->solvent1_name ?></option> <?php endforeach ?> </select> </div> <div class="col-md-auto text-right">Solubility Value</div> <div class="col-md-2"><input type="text" name="s_value[]" class="form-control" placeholder="" required></div> <div class="col-md-auto text-right">MG/ML</div><div class="col-md-auto text-right">Temp</div> <div class="col-md-2"> <select   class="form-control" name="temp[]" required> <option value="10" > 10</option> <option value="25" > 25</option> <option value="50" > 50</option> </select> </div><button type="button" class="removeButton btn btn-danger">-</button>';
+            $("#textBoxContainer").append(textBoxHtml);
+        });
+
+        // Remove text box
+        $("#textBoxContainer").on("click", ".removeButton", function(){
+            $(this).parent(".textBoxWrapper").remove();
+        });
+    });
+</script>
 

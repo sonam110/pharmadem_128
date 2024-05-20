@@ -57,21 +57,35 @@ defined('BASEPATH') OR exit('No direct script access allowed'); ?>
                    </div>
                    <div class="card-body">
                        <form id="myForm" method="post" action="<?= base_url('analysis/generate') ?>">
-
+                        <div class="form-group">
+                        <label for="set1_start"> Job Type </label>
+                         <select class="form-control" name="solvents" id="solvents" required >
+                            <option value="" selected disabled>Select Job Type</option>
+                            <option value="Pure_68">Pure_68</option>
+                            <option value="Binary_1085">Binary_2278</option>
+                            <option value="Tertiary-16400">Tertiary-50116</option>
+                        </select>
+                    </select>
+                    </div>
                        <div class="form-group">
-    <label for="set1_start">Select Projects </label>
-    <select name="project_id[]" id="project_id" class="form-control select2" required multiple size="10">
-        <?php foreach ($this->projects_model->getjobscompleted() as $row): ?>
-            <?php
-            $checkjobinserts = $this->projects_model->checkjobinserts($row['pid']);
-            ?>
-            <?php $sel = !empty($_POST['project_id']) && in_array($row['pid'], (array)$_POST['project_id']) ? 'selected' : '' ?>
-            <?php if($checkjobinserts) {  ?>
-                <option value="<?php echo $row['pid'] ?>" <?php echo $sel ?>><?php echo $row['project_name'] ?></option>
-            <?php } ?>
-        <?php endforeach ?>
-    </select>
-</div>
+                            <label for="set1_start">Select Projects </label>
+                            <span id ="projectDiv"></span>
+                            <!-- <select name="project_id[]" id="project_id" class="form-control select2" required multiple size="10">
+                                <?php foreach ($this->projects_model->getjobscompleted() as $row): ?>
+                                    <?php
+                                    $checkjobinserts = $this->projects_model->checkjobinserts($row['pid']);
+                                    ?>
+                                    <?php $sel = !empty($_POST['project_id']) && in_array($row['pid'], (array)$_POST['project_id']) ? 'selected' : '' ?>
+                                    <?php if($checkjobinserts) {  ?>
+                                        <option value="<?php echo $row['pid'] ?>" <?php echo $sel ?>><?php echo $row['project_name'] ?></option>
+                                    <?php } ?>
+                                <?php endforeach ?>
+                            </select> -->
+                        </div>
+
+
+
+
 
        
 <button type="button" id="fetchDataButton">Fetch Data</button>
@@ -90,7 +104,50 @@ defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 
 
     
+   <div class="col-3">
+     <div class="row justify-content-center">
+           <div class="col-md-12" >
+               <div class="card">
+                   <div class="card-header">
+                       <h5 class="mb-0">Enter Range Values</h5>
+                   </div>
+                   <div class="card-body">
+                       <form id="myForm" method="post" action="<?= base_url('analysis/generate') ?>">
+                        <div class="form-group">
+                        <label for="set1_start"> Job Type </label>
+                         <select class="form-control" name="solvent" id="solvent" required >
+                            <option value="" selected disabled>Select Job Type</option>
+                            <option value="Pure_68">Pure_68</option>
+                            <option value="Binary_1085">Binary_2278</option>
+                            <option value="Tertiary-16400">Tertiary-50116</option>
+                        </select>
+                    </select>
+                    </div>
+                       <div class="form-group">
+                            <label for="set1_start">Select Projects </label>
+                            <span id ="projectDivCorr"></span>
+                            
+                        </div>
+
+
+
+
+
+       
+<button type="button" id="fetchDataButtonCorrect">Fetch Corrected Data</button>
+                   
+                       </form>
+                  
+
    
+
+                   </div>
+               </div>
+           </div>
+       </div>
+       
+   </div>
+
 
     
 
@@ -156,6 +213,55 @@ defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 </section>
 
 <script>
+    $(document).ready(function() {
+        $('#solvents').change(function() {
+            var solvent = $(this).val();
+            $('#fetchedData').html('');
+            if (solvent !== '') {
+                $.ajax({
+                    url: '<?= site_url('analysis/get_projects_by_solvent') ?>', // Update the URL to your controller method
+                    type: 'POST',
+                    data: {solvent: solvent},
+                    dataType: 'html',
+                    success: function(response) {
+                        $('#projectDiv').html(response); // Clear existing options
+                        
+                    },
+                    error: function(xhr, status, error) {
+                        console.error(xhr.responseText);
+                    }
+                });
+            } else {
+                 // Clear options if no solvent is selected
+            }
+        });
+    });
+       $(document).ready(function() {
+        $('#solvent').change(function() {
+            var solvent = $(this).val();
+            $('#fetchedData').html('');
+            if (solvent !== '') {
+                $.ajax({
+                    url: '<?= site_url('analysis/get_corr_projects_by_solvent') ?>', // Update the URL to your controller method
+                    type: 'POST',
+                    data: {solvent: solvent},
+                    dataType: 'html',
+                    success: function(response) {
+                        $('#projectDivCorr').html(response); // Clear existing options
+                        
+                    },
+                    error: function(xhr, status, error) {
+                        console.error(xhr.responseText);
+                    }
+                });
+            } else {
+                 // Clear options if no solvent is selected
+            }
+        });
+    });
+
+
+
     var table;
     var barChart;
     var headerRow = [];
@@ -168,6 +274,8 @@ defined('BASEPATH') OR exit('No direct script access allowed'); ?>
             var selectedProjects = Array.from(document.querySelectorAll("#project_id option:checked")).map(function (option) {
                 return option.value;
             });
+
+            
 
             if (selectedProjects.length === 0) {
                 alert("Please select at least one project.");
@@ -191,6 +299,23 @@ defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 
                     var projectsData = response.data;
                     var tableData = [];
+
+                    var pureDataArray = {
+                    'pure_data1': '(0.0, 0.1, 0.9)',
+                    'pure_data2': '(0.0, 0.25, 0.75)',
+                    'pure_data3': '(0.0, 0.5, 0.5)',
+                    'pure_data4': '(0.0, 0.75, 0.25)',
+                    'pure_data5': '(0.0, 0.9, 0.1)'
+                    };
+
+                    var terDataArray = {
+
+                        'pure_data1': '(0.0, 0.1, 0.75, 0.15)',
+                        'pure_data2': '(0.0, 0.25, 0.50, 0.25)',
+                        'pure_data3': '(0.0, 0.5, 0.25, 0.25)'
+
+                    }
+
 
                     // Create the header row dynamically
                     headerRow = ['Solvent Name'];
@@ -225,13 +350,32 @@ defined('BASEPATH') OR exit('No direct script access allowed'); ?>
                     // Populate the data rows
                     for (var i = 0; i < maxResults; i++) {
                         var dataRow = [];
-                    //console.log(i);
-                   // console.log(projectsData[0].results_10_ssystem_name[i]);
+
                         // Add "Solvent Name" in the first column
                         var solventName = projectsData[0].results_10_ssystem_name[i] || '';
-
-                        dataRow.push(solventName);
-
+                        //console.log(projectsData);
+                        //dataRow.push(solventName);
+                     
+                        if (solventName) {
+                            if ((projectsData[0].results_10_rtype[i] != "Pure_68") && (projectsData[0].results_10_rtype[i] != "Tertiary-16400")) {
+                                if (pureDataArray[projectsData[0].results_10_wt_fraction[i]]) {
+                                    dataRow.push(solventName + "-" + pureDataArray[projectsData[0].results_10_wt_fraction[i]].replace("-", pureDataArray[projectsData[0].results_10_wt_fraction[i]]));
+                                } else {
+                                    dataRow.push(solventName);
+                                }
+                            } else if (projectsData[0].results_10_rtype[i] === "Tertiary-16400") {
+                                if (terDataArray[projectsData[0].results_10_wt_fraction[i]]) {
+                                    dataRow.push(solventName + "-" + terDataArray[projectsData[0].results_10_wt_fraction[i]].replace("-", terDataArray[projectsData[0].results_10_wt_fraction[i]]));
+                                } else {
+                                    dataRow.push(solventName);
+                                }
+                            } else {
+                                dataRow.push(solventName);
+                            }
+                        } else {
+                            console.error("Solvent name is undefined or null for  " + (i + 1));
+                            dataRow.push('');
+                        }
                         
 
                         // Add result values for each project and unit (10cmgml, 25cmgml, 50cmgml)
@@ -496,6 +640,7 @@ function createDataTable(projectsData, tableData) {
 }
 
         function applyFiltersAndRedraw() {
+            //alert(1);
     // Get filter values and update the DataTable
     var filterValues = {};
     var filterApplied = false; // Track if any filters are applied
@@ -536,7 +681,9 @@ function createDataTable(projectsData, tableData) {
                 var min = units[unit].min;
                 var dataIndex = headerRow.indexOf(project + ' (' + unit + ')');
                 var value = parseFloat(data[dataIndex]);
-
+                //console.log(unit);
+               // console.log(dataIndex);
+               // console.log(value);
                 // Check if the value is NaN
                 if (isNaN(value)) {
                     showRow = false;
@@ -700,15 +847,7 @@ barChart = new Chart(ctx, {
 });
 
 chartCreated = true;
-// Add event listener for right-click on the canvas to download the chart
-ctx.canvas.addEventListener('contextmenu', function(event) {
-    event.preventDefault();
-    var imageData = ctx.canvas.toDataURL('image/jpeg');
-    var link = document.createElement('a');
-    link.href = imageData;
-    link.download = 'Impurity_Rejection_Plot.png'; // Set a custom name for the downloaded image
-    link.click();
-});
+
 
 // Function to get project names from table headers
 function getProjectNames(table) {
@@ -735,7 +874,402 @@ function getRandomColor() {
 }
 
 
+  $('#fetchDataButtonCorrect').click(function () {
+            var selectedProjects = Array.from(document.querySelectorAll("#project_cor_id option:checked")).map(function (option) {
+                return option.value;
+            });
 
+            
+
+            if (selectedProjects.length === 0) {
+                alert("Please select at least one project.");
+                return;
+            }
+
+            if (selectedProjects.length > 5) {
+                alert("You can select a maximum of 5 projects.");
+                return;
+            }
+
+            $('#fetchDataButtonCorrect').prop('disabled', true);
+
+            $.ajax({
+                type: "POST",
+                url: "<?php echo site_url('analysis/getfecthCorrecteddata'); ?>",
+                data: { selectedProjects: selectedProjects },
+                dataType: "json",
+                success: function (response) {
+                    $('#fetchedData').html('<table id="dataTable" class="table table-bordered table-hover table-striped dataTable no-footer dtr-inline" style="font-size:8px;width: 100%;"></table>');
+
+                    var projectsData = response.data;
+                    var tableData = [];
+
+                    var pureDataArray = {
+                    'pure_data1': '(0.0, 0.1, 0.9)',
+                    'pure_data2': '(0.0, 0.25, 0.75)',
+                    'pure_data3': '(0.0, 0.5, 0.5)',
+                    'pure_data4': '(0.0, 0.75, 0.25)',
+                    'pure_data5': '(0.0, 0.9, 0.1)'
+                    };
+
+                    var terDataArray = {
+
+                        'pure_data1': '(0.0, 0.1, 0.75, 0.15)',
+                        'pure_data2': '(0.0, 0.25, 0.50, 0.25)',
+                        'pure_data3': '(0.0, 0.5, 0.25, 0.25)'
+
+                    }
+
+
+                    // Create the header row dynamically
+                    headerRow = ['Solvent Name'];
+
+                    // Add project names and units (10cmgml, 25cmgml, 50cmgml) to the header
+                    for (var i = 0; i < projectsData.length; i++) {
+                        var projectName = projectsData[i].projectName;
+                        headerRow.push(projectName + ' (known10cmgml)');
+                        headerRow.push(projectName + ' (predict10cmgml)');
+                        headerRow.push(projectName + ' (correct10cmgml)');
+                        headerRow.push(projectName + ' (known25cmgml)');
+                        headerRow.push(projectName + ' (predict25cmgml)');
+                        headerRow.push(projectName + ' (correct25cmgml)');
+                         headerRow.push(projectName + ' (known50cmgml)');
+                        headerRow.push(projectName + ' (predict50cmgml)');
+                        headerRow.push(projectName + ' (correct50cmgml)');
+                       
+                        //headerRow.push(projectName + ' System Name');
+
+                    }
+
+                    tableData.push(headerRow);
+                    //tableData.push(dataRow);
+
+                    // Determine the maximum number of result sets available
+                    var maxResults = 0;
+                    for (var i = 0; i < projectsData.length; i++) {
+                        maxResults = Math.max(maxResults, projectsData[i].results_10.length);
+                    }
+
+                    // Populate the data rows
+                    for (var i = 0; i < maxResults; i++) {
+                        var dataRow = [];
+
+                        // Add "Solvent Name" in the first column
+                        var solventName = projectsData[0].results_10_ssystem_name[i] || '';
+                        //console.log(projectsData);
+                        //dataRow.push(solventName);
+                     
+                        if (solventName) {
+                            if ((projectsData[0].results_10_rtype[i] != "Pure_68") && (projectsData[0].results_10_rtype[i] != "Tertiary-16400")) {
+                                if (pureDataArray[projectsData[0].results_10_wt_fraction[i]]) {
+                                    dataRow.push(solventName + "-" + pureDataArray[projectsData[0].results_10_wt_fraction[i]].replace("-", pureDataArray[projectsData[0].results_10_wt_fraction[i]]));
+                                } else {
+                                    dataRow.push(solventName);
+                                }
+                            } else if (projectsData[0].results_10_rtype[i] === "Tertiary-16400") {
+                                if (terDataArray[projectsData[0].results_10_wt_fraction[i]]) {
+                                    dataRow.push(solventName + "-" + terDataArray[projectsData[0].results_10_wt_fraction[i]].replace("-", terDataArray[projectsData[0].results_10_wt_fraction[i]]));
+                                } else {
+                                    dataRow.push(solventName);
+                                }
+                            } else {
+                                dataRow.push(solventName);
+                            }
+                        } else {
+                            console.error("Solvent name is undefined or null for  " + (i + 1));
+                            dataRow.push('');
+                        }
+                        //console.log(solventName);
+                        
+
+                        // Add result values for each project and unit (10cmgml, 25cmgml, 50cmgml)
+                        for (var j = 0; j < projectsData.length; j++) {
+                            var projectData = projectsData[j];
+                            var results_10_known = projectData.results_10_known[i] || '';
+                            var results_10 = projectData.results_10[i] || '';
+                            var results_10_correct = projectData.results_10_correct[i] || '';
+                            var results_25_known = projectData.results_25_known[i] || '';
+                            var results_25 = projectData.results_25[i] || '';
+                            var results_25_correct = projectData.results_25_correct[i] || '';
+                            var results_50_known = projectData.results_50_known[i] || '';
+                            var results_50 = projectData.results_50[i] || '';
+                            var results_50_correct = projectData.results_50_correct[i] || '';
+
+                          
+                            if (!isNaN(parseFloat(results_10_known))) {
+                               dataRow.push(parseFloat(results_10_known).toFixed(3)); 
+                            } else {
+                                dataRow.push(null);
+                            }
+                              
+                            if (!isNaN(parseFloat(results_10))) {
+                               dataRow.push(parseFloat(results_10).toFixed(3)); 
+                            } else {
+                                dataRow.push(null);
+                            }
+                            if (!isNaN(parseFloat(results_10_correct))) {
+                               dataRow.push(parseFloat(results_10_correct).toFixed(3)); 
+                            } else {
+                                dataRow.push(null);
+                            }
+                            if (!isNaN(parseFloat(results_25_known))) {
+                               dataRow.push(parseFloat(results_25_known).toFixed(3)); 
+                            } else {
+                                dataRow.push(null);
+                            }
+                            if (!isNaN(parseFloat(results_25))) {
+                               dataRow.push(parseFloat(results_25).toFixed(3)); 
+                            } else {
+                                dataRow.push(null);
+                            }
+                            if (!isNaN(parseFloat(results_25_correct))) {
+                               dataRow.push(parseFloat(results_25_correct).toFixed(3)); 
+                            } else {
+                                dataRow.push(null);``
+                            }
+                            if (!isNaN(parseFloat(results_50_known))) {
+                               dataRow.push(parseFloat(results_50_known).toFixed(3)); 
+                            } else {
+                                dataRow.push(null);
+                            }
+                            if (!isNaN(parseFloat(results_50))) {
+                               dataRow.push(parseFloat(results_50).toFixed(3)); 
+                            } else {
+                                dataRow.push(null);
+                            }
+                            if (!isNaN(parseFloat(results_50_correct))) {
+                               dataRow.push(parseFloat(results_50_correct).toFixed(3)); 
+                            } else {
+                                dataRow.push(null);
+                            }
+                           
+                                                        
+                           /* dataRow.push(parseFloat(results_25).toFixed(3)); 
+                            dataRow.push(parseFloat(results_50).toFixed(3)); 
+                            dataRow.push(parseFloat(results_10cvl).toFixed(3)); 
+                            dataRow.push(parseFloat(results_25cvl).toFixed(3)); 
+                            dataRow.push(parseFloat(results_50cvl).toFixed(3)); 
+                            dataRow.push(parseFloat(results_10cyl).toFixed(3)); 
+                            dataRow.push(parseFloat(results_25cyl).toFixed(3)); 
+                            dataRow.push(parseFloat(results_50cyl).toFixed(3)); */
+                        }
+
+                        //var systemName = projectsData[0].results_10_ssystem_name[i] || '';
+                       // dataRow.push(systemName);
+
+                        tableData.push(dataRow);
+                    }
+
+                    // Create DataTable with filter inputs
+                    createDataTableCorrect(projectsData, tableData);
+
+                    // Enable the "Filter" button after fetching data
+                    $('#filterButton').prop('disabled', false);
+                    $('#fetchDataButtonCorrect').prop('disabled', false);
+                    tableData = table.rows({ search: 'applied' }).data().toArray();
+
+                    //createOrUpdateChart(tableData);
+
+                },
+                error: function () {
+                    alert("Error fetching data.");
+                    $('#fetchDataButtonCorrect').prop('disabled', false); // Enable the "Fetch Data" button on error
+                },
+        });
+
+     });
+
+       // Function to create the DataTable with filter inputs and custom buttons
+function createDataTableCorrect(projectsData, tableData) {
+    // Clear previous DataTable instance, if any
+    if (table) {
+        table.destroy();
+    }
+
+    // Create the header row with filter inputs for all projects and units
+    var headerRowHtml = '<tr role="row"><th>Solvent Name</th>';
+    for (var i = 0; i < projectsData.length; i++) {
+        var projectName = projectsData[i].projectName;
+        headerRowHtml += '<th>' +
+            '<input type="number" id="' + projectName + '_known10cmgml_max" class="project-filter form-control" data-project="' + projectName + '" placeholder="Max">' +
+            '<input type="number" id="' + projectName + '_known10cmgml_min" class="project-filter form-control" data-project="' + projectName + '" placeholder="Min">' +
+            '</th>';
+        headerRowHtml += '<th>' +
+            '<input type="number" id="' + projectName + '_predict10cmgml_max" class="project-filter form-control" data-project="' + projectName + '" placeholder="Max">' +
+            '<input type="number" id="' + projectName + '_predict10cmgml_min" class="project-filter form-control" data-project="' + projectName + '" placeholder="Min">' +
+            '</th>';
+        headerRowHtml += '<th>' +
+            '<input type="number" id="' + projectName + '_correct10cmgml_max" class="project-filter form-control" data-project="' + projectName + '" placeholder="Max">' +
+            '<input type="number" id="' + projectName + '_correct10cmgml_min" class="project-filter form-control" data-project="' + projectName + '" placeholder="Min">' +
+            '</th>';
+         headerRowHtml += '<th>' +
+         '<input type="number" id="' + projectName + '_known25cmgml_max" class="project-filter form-control" data-project="' + projectName + '" placeholder="Max">' +
+            '<input type="number" id="' + projectName + '_known25cmgml_min" class="project-filter form-control" data-project="' + projectName + '" placeholder="Min">' +
+            '</th>';
+        headerRowHtml += '<th>' +
+            '<input type="number" id="' + projectName + '_predict25cmgml_max" class="project-filter form-control" data-project="' + projectName + '" placeholder="Max">' +
+            '<input type="number" id="' + projectName + '_predictcmgml_min" class="project-filter form-control" data-project="' + projectName + '" placeholder="Min">' +
+            '</th>';
+        headerRowHtml += '<th>' +
+            '<input type="number" id="' + projectName + '_correct25cmgml_max" class="project-filter form-control" data-project="' + projectName + '" placeholder="Max">' +
+            '<input type="number" id="' + projectName + '_correct25cmgml_min" class="project-filter form-control" data-project="' + projectName + '" placeholder="Min">' +
+            '</th>';
+             headerRowHtml += '<th>' +
+             '<input type="number" id="' + projectName + '_50knowncmgml_max" class="project-filter form-control" data-project="' + projectName + '" placeholder="Max">' +
+            '<input type="number" id="' + projectName + '_50knowncmgml_min" class="project-filter form-control" data-project="' + projectName + '" placeholder="Min">' +
+            '</th>';
+        headerRowHtml += '<th>' +
+            '<input type="number" id="' + projectName + '_50predictcmgml_max" class="project-filter form-control" data-project="' + projectName + '" placeholder="Max">' +
+            '<input type="number" id="' + projectName + '_50predictcmgml_min" class="project-filter form-control" data-project="' + projectName + '" placeholder="Min">' +
+            '</th>';
+        headerRowHtml += '<th>' +
+            '<input type="number" id="' + projectName + '_50correct_cmgml_max" class="project-filter form-control" data-project="' + projectName + '" placeholder="Max">' +
+            '<input type="number" id="' + projectName + '_50correctcmgml_min" class="project-filter form-control" data-project="' + projectName + '" placeholder="Min">' +
+            '</th>';
+    }
+    headerRowHtml += '</tr>';
+
+    $('#dataTable').html(headerRowHtml);
+
+    // Add event listener for filter input changes
+    $('.project-filter').on('change', function () {
+        // No need to apply filters here; they will be applied when clicking the "Filter" button
+    });
+
+    // Initialize DataTable with export options and a filteredData variable
+    var filteredData; // Initialize a variable to store filtered data
+
+    table = $('#dataTable').DataTable({
+    data: tableData,
+   // scrollY: '3000px',
+   // scrollCollapse: false,
+    paging: false,
+    dom: '<"top"iBf>rt<"bottom"lp><"clear">',
+    buttons: [
+        'colvis', 
+        {
+            text: 'Filter',
+            action: function () {
+                applyFiltersAndRedrawCorrect();
+            }
+        },
+        "copy",
+        {
+             extend:
+                'excel' ,// Add Excel download button
+                filename: function () {
+                // Dynamic CSV file name based on your logic
+                  return 'Project_master';
+              }
+          },
+        
+        {
+            text: 'Create Chart',
+            action: function () {
+                var visibleData = [];
+
+                table.rows().every(function () {
+                    if (this.nodes().to$().is(':visible')) {
+                        visibleData.push(this.data());
+                    }
+                });
+                
+                createOrUpdateChart(visibleData);
+            }
+        }
+    ],
+    columns: headerRow.map(function (title) {
+        return { title: title };
+    })
+});
+
+
+    table.row(table.rows().length - 1).remove().draw();
+}
+
+        function applyFiltersAndRedrawCorrect() {
+    // Get filter values and update the DataTable
+    var filterValues = {};
+    var filterApplied = false; // Track if any filters are applied
+
+    $('.project-filter').each(function () {
+        var project = $(this).data('project');
+        //console.log(project);
+        //var units = ['10cmgml', '25cmgml', '50cmgml'];
+    var units = ['known10cmgml', 'predict10cmgml', 'correct10cmgml','known25cmgml', 'predict25cmgml', 'correct25cmgml','50knowncmgml', '50predictcmgml', '50correctcmgml'];
+        var projectFilters = {};
+
+        for (var i = 0; i < units.length; i++) {
+            var unit = units[i];
+            var max = parseFloat($('#' + project + '_' + unit + '_max').val());
+            var min = parseFloat($('#' + project + '_' + unit + '_min').val());
+           
+            if (!isNaN(max) || !isNaN(min)) {
+                projectFilters[unit] = { max: max, min: min };
+                filterApplied = true;
+            }
+        }
+
+        if (!$.isEmptyObject(projectFilters)) {
+            filterValues[project] = projectFilters;
+        }
+    });
+
+    // Apply filters based on filterValues
+    table.rows().every(function () {
+        var data = this.data();
+        var solventName = data[0];
+        var showRow = true;
+
+        for (var project in filterValues) {
+            var units = filterValues[project];
+                   
+            for (var unit in units) {
+                var max = units[unit].max;
+                var min = units[unit].min;
+                
+              
+                var dataIndex = headerRow.indexOf(project + ' (' + unit + ')');
+                var value = parseFloat(data[dataIndex]);
+                //console.log(unit);
+               // console.log(dataIndex);
+               // console.log(value);
+
+                // Check if the value is NaN
+                  
+                 
+                if (isNaN(value)) {
+                    showRow = false;
+                    break;
+                }
+
+                // Check if the value is outside the filter range
+                if ((!isNaN(max) && value > max) || (!isNaN(min) && value < min)) {
+                    showRow = false;
+                    break;
+                }
+            }
+        }
+
+        // Show or hide the row based on filter values
+        this.nodes().to$().toggle(showRow);
+    });
+
+    // Redraw the DataTable
+    table.draw();
+
+    // Get the filtered data after applying filters
+    tableData = table.rows({ filter: 'applied' }).data().toArray();
+//console.log(tableData);
+    // Update the chart with the filtered data
+    //createOrUpdateChart(tableData);
+
+    // Update the chart based on the filtered data
+    if (!filterApplied) {
+        // If no filters are applied, show all data on the chart
+        //resetChart();
+    }
+}
 
     </script>
 

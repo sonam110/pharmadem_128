@@ -4,6 +4,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class Projects extends MY_Controller {
 
@@ -23,8 +24,10 @@ class Projects extends MY_Controller {
 	public function index()
 	{
 		ifPermissions('projects_list');
-		
+
 		// Assuming $results contains the data fetched from your SQL query
+		 // dd($this->projects_model->checkjobinsertsA('269'));
+
 		$type = $this->input->get('type');
 		$this->page_data['projects'] = [];
 		if($type =='progress'){
@@ -152,6 +155,7 @@ class Projects extends MY_Controller {
 		ifPermissions('project_submit');
 
 		$this->page_data['Project'] = $this->projects_model->getById($id);
+		$this->page_data['cdata'] = $this->projects_model->getsolvents_all();
 		
 		$this->load->view('projects/submit', $this->page_data);
 	}
@@ -578,7 +582,10 @@ while (empty($stream)) {
 					$file_contents = str_replace($input_temp, $replace_input_temp, $file_contents);
 					$fileContents = str_replace("'", "'\\''", $file_contents);
 					//Azhar Commented
+					//$command = 'cd /home/mlladmin/ORCA/openCOSMO-RS_py/src/opencosmorspy; nohup python3 -c \'' . $fileContents . '\'';
+
 					$command = 'cd /home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src/opencosmorspy; nohup python3 -c \'' . $fileContents . '\'';
+
 					//$stream = $ssh->exec($command);
 					$stream = $ssh->exec($command . ' &');
 		
@@ -772,6 +779,7 @@ $item = $row['solvent1_name'];
 
 				
 		$command = 'cd /home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src/opencosmorspy; nohup python3 -c \'' . $fileContents . '\'';
+		
 		$stream = $ssh->exec($command . ' &');
 
 		while (empty($stream)) {
@@ -792,7 +800,7 @@ $item = $row['solvent1_name'];
 		// Accessing the value for "data1"
 		$data1 = $dataj['data1'];
 		$data2 = $dataj['data2'];
-		//$data3 = $dataj['data3'];
+		$data3 = $dataj['data3'];
 		//$data4 = $dataj['data4'];
 		//$data5 = $dataj['data5'];
 		//$data6 = $dataj['data6'];
@@ -803,8 +811,8 @@ $item = $row['solvent1_name'];
 			'solvents' => $row['solvent1_name'].'->'.$row['solvent2_name'].'->'.$row['solvent3_name'],
 			'result_type' => $stype,
 			'pure_data1' => $data1[0] . ", " . $data1[1] . ", " . $data1[2] . ", " . $data1[3] ,
-			'pure_data2' => $data2[0] . ", " . $data2[1] . ", " . $data1[2] . ", " . $data1[3] ,
-			//'pure_data3' => round($data3[0],4) . ", " . round($data3[1],4) . ", " . round($data1[2],4) . ", " . round($data1[3],4) ,
+			'pure_data2' => $data2[0] . ", " . $data2[1] . ", " . $data2[2] . ", " . $data2[3] ,
+			'pure_data3' => $data3[0] . ", " . $data3[1] . ", " . $data3[2] . ", " . $data3[3] ,
 			//'pure_data4' => round($data4[0],4) . ", " . round($data4[1],4) . ", " . round($data1[2],4) . ", " . round($data1[3],4) ,
 			//'pure_data5' => round($data5[0],4) . ", " . round($data5[1],4) . ", " . round($data1[2],4) . ", " . round($data1[3],4) ,
 			//'pure_data6' => $data6[0] . ", " . $data6[1] ,
@@ -1089,6 +1097,9 @@ while (empty($stream)) {
 		$this->db->delete('results_data_50');
 
 		$this->db->where('job_id', $id);
+		$this->db->delete('solubility_corrected_predicted_data');
+
+		$this->db->where('job_id', $id);
 		$this->db->delete('job_status');
 
 		$this->db->where('job_id', $id);
@@ -1100,6 +1111,28 @@ while (empty($stream)) {
             $this->db->where('job_id', $id);
             $this->db->update('tasks_queue', $updatelastdata);
 	    }
+		
+		$this->session->set_flashdata('alert-type', 'success');
+		$this->session->set_flashdata('alert', 'Job Data Removed Successfully');
+
+
+		redirect('projects');
+
+
+	}
+	public function deletedataph($id)
+	{
+		$this->db->where('job_id', $id);
+		$this->db->delete('job_results_ph_count');
+
+		$this->db->where('job_id', $id);
+		$this->db->delete('job_ph_results');
+
+		$this->db->where('job_id', $id);
+		$this->db->delete('ph_solubility_results');
+
+		$this->db->where('job_id', $id);
+		$this->db->delete('job_status');
 		
 		$this->session->set_flashdata('alert-type', 'success');
 		$this->session->set_flashdata('alert', 'Job Data Removed Successfully');
@@ -1181,6 +1214,24 @@ if (!$existingRecord) {
 
 	}
 
+	public function insertphresults10(){
+		$id = $this->input->post('data1');
+		
+		$this->projects_model->insertphresults($id,'10');
+	}
+
+	public function insertphresults25(){
+		$id = $this->input->post('data1');
+		$this->projects_model->insertphresults($id,'25');
+	}
+
+	public function insertphresults50(){
+		$id = $this->input->post('data1');
+		$this->projects_model->insertphresults($id,'50');
+
+
+	}
+
 	public function showcreateddata($id)
 
 	{
@@ -1190,6 +1241,16 @@ if (!$existingRecord) {
 		$this->page_data['jstatus'] = $this->projects_model->getJobdetails($id);
 
 		$this->load->view('projects/showcreateddata', $this->page_data);
+	}
+	public function showphcreateddata($id)
+	{
+
+		$this->page_data['cdata10'] = $this->projects_model->getresultsphdatai($id,'10');
+		$this->page_data['cdata25'] = $this->projects_model->getresultsphdatai($id,'25');
+		$this->page_data['cdata50'] = $this->projects_model->getresultsphdatai($id,'50');
+		$this->page_data['jstatus'] = $this->projects_model->getJobdetails($id);
+
+		$this->load->view('projects/showphcreateddata', $this->page_data);
 	}
 
 
@@ -1266,7 +1327,7 @@ if (!$existingRecord) {
 		$kill_command = 'sh /home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src/opencosmorspy/python3_kill.sh python3.py';
 		$stream = $ssh->exec($kill_command);
 			
-		sleep(50);
+		sleep(180);
 		
 		$this->db->query("DELETE FROM jobs_master WHERE cosmo_status = 'Processing'");
 		$this->db->query("DELETE FROM job_results_count WHERE status = 'Pending'");
@@ -1337,6 +1398,14 @@ if (!$existingRecord) {
 		$this->page_data['jstatus'] = $this->projects_model->getJobdetails($id);
 	
 		$this->load->view('projects/results', $this->page_data);
+	}
+	public function resultsph($id)
+	{
+		ifPermissions('projects_list');
+		$this->page_data['results_type'] = $this->projects_model->getresultsPh($id);
+		$this->page_data['jstatus'] = $this->projects_model->getJobdetails($id);
+	
+		$this->load->view('projects/resultsph', $this->page_data);
 	}
 
 	public function scatter_data($id){
@@ -1468,7 +1537,10 @@ $sftp->disconnect();
 		$Smile=$this->input->post('Smile');
 		$kns=$this->input->post('kns');
 		$hfvalue=$this->input->post('hfvalue');
-		$molweight=$this->input->post('mweight');
+		$molweight= $this->input->post('mweight');
+		$s_name = $this->input->post('s_name');
+		$s_value = $this->input->post('s_value');
+		$temp = $this->input->post('temp');
 
 		$ext='.inp';
 		$fullname=$fname.$ext;
@@ -1523,6 +1595,24 @@ $sftp->disconnect();
 			$row = $query->row();
 			$jobbid = $row->id;
 
+			if(is_array(@$s_name) && count(@$s_name) >0 ){
+	            for ($i = 0;$i <= count($s_name);$i++) {
+	                if (!empty($s_name[$i])) {
+	                	$dataAdd = array(
+				        'job_id' => $jobbid,
+				        's_name' => $s_name[$i],
+				        's_value' => $s_value[$i],
+				        'temp' =>	$temp[$i],
+				        'created_at' => date('Y-m-d H:i:s'),
+				        'status' => 'Pending'
+				    );
+
+				    $this->db->insert('solubility_correction_data', $dataAdd);
+
+	                }
+	            }
+	        }
+
 			$existingRecord = $this->db->get_where('tasks_queue', array('job_id' => $jobbid,'status'=>'pending'))->row();
 			
 			
@@ -1556,8 +1646,6 @@ $sftp->disconnect();
 		$contentf = $fname."\t".$Smile."\t".$mvalue;
 		$ssh->exec('cd /home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src/opencosmorspy; touch '.$fullname.'; echo "'.$contentf.'" >> '.$fullname.'');
 		$ssh->exec('cd /home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src/opencosmorspy; nohup python3 ConformerGenerator.py --structures_file '.$fullname.' --n_cores=4 > t.log 2>&1 & echo $!');
-		//$command = ('cd /home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src/opencosmorspy; nohup python3 ConformerGenerator.py --structures_file '.$fullname.' --n_cores=4 > t.log 2>&1 & echo $!');
-		//$pid = $ssh->exec($command);
 
 		$id = $this->projects_model->createjob([
 			'project_id' => $project_code,
@@ -1573,6 +1661,27 @@ $sftp->disconnect();
 			'cosmo_status	' => 'Processing',
 		]);
 
+		$queryn = $this->db->query("SELECT id FROM jobs_master ORDER BY id DESC LIMIT 1");
+		$row_id = $queryn->row();
+		$jobbid = $row_id->id;
+
+		if(is_array(@$s_name) && count(@$s_name) >0 ){
+            for ($i = 0;$i <= count($s_name);$i++) {
+                if (!empty($s_name[$i])) {
+                	$dataAdd = array(
+			        'job_id' => $jobbid,
+			        's_name' => $s_name[$i],
+			        's_value' => $s_value[$i],
+			        'created_at' => date('Y-m-d H:i:s'),
+			        'status' => 'Pending'
+			    );
+
+			    $this->db->insert('solubility_correction_data', $dataAdd);
+
+                }
+            }
+        }
+
 		$this->activity_model->add('DEM File '.$fullname.' Created by User:'.logged('name'), logged('id'));
 
 
@@ -1580,6 +1689,594 @@ $sftp->disconnect();
 		$this->session->set_flashdata('alert', 'Job Created Succesfully...');
 
 		redirect('projects');
+
+	}
+
+	public function savesolubilitydata(){
+		$jobid= $this->input->post('jobid');
+		$s_name = $this->input->post('s_name');
+		$s_value = $this->input->post('s_value');
+		$temp = $this->input->post('temp');
+		$type = $this->input->post('type');
+
+		if($type=='1') {
+			if(is_array(@$s_name) && count(@$s_name) >0 ){
+				/* Delete old---------------------*/
+	            $this->db->where_in('job_id', $jobid);
+				$this->db->delete('solubility_correction_data');
+	            for ($i = 0;$i <= count($s_name);$i++) {
+
+	                if (!empty($s_name[$i])) {
+	                	$dataAdd = array(
+				        'job_id' => $jobid,
+				        's_name' => $s_name[$i],
+				        's_value' => $s_value[$i],
+				        'temp' => $temp[$i],
+				        'created_at' => date('Y-m-d H:i:s'),
+				        'status' => 'Pending'
+				    );
+
+			    	$this->db->insert('solubility_correction_data', $dataAdd);
+
+                	}
+            	}
+	        }
+	        $this->session->set_flashdata('alert-type', 'success');
+			$this->session->set_flashdata('alert', 'Solubility Created Succesfully...');
+
+			redirect('projects');
+	    }
+	    if($type=='2') {
+	    	
+	     	$fileName = $_FILES['file']['name'];
+		    $uploadData = array();
+			if (!empty($fileName)) {
+				$config['upload_path'] = './uploads/';
+				$config['allowed_types'] = 'xls|xlsx';
+				$config['max_size'] = 2048;
+				$config['remove_spaces'] = TRUE;
+				$config['encrypt_name'] = TRUE;
+				$this->load->library('upload', $config);
+				$this->upload->initialize($config);
+
+				if (!$this->upload->do_upload('file')) {
+					$this->session->set_flashdata('alert-type', 'error');
+					$this->session->set_flashdata('alert', $this->upload->display_errors());
+					redirect('projects');
+				    
+				} else {
+				    $uploadData = $this->upload->data();
+				    $fileName = $uploadData['file_name'];
+				    $filePath = FCPATH . 'uploads/' . $fileName; // Use FCPATH to get the physical path
+				     
+				    $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+				    // Get the first worksheet
+				    $worksheet = $spreadsheet->getActiveSheet();
+				    // Get the highest row and column numbers to determine the data range
+				    $highestRow = $worksheet->getHighestRow();
+				    $highestColumn = $worksheet->getHighestColumn();
+				    $highestColumnIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($highestColumn);
+
+				    // Initialize an array to store the Excel data
+				    $data = array();
+
+				    // Iterate through each row and column to extract data
+				    for ($row = 1; $row <= $highestRow; ++$row) {
+				        $rowData = array();
+				        for ($col = 1; $col <= $highestColumnIndex; ++$col) {
+				            // Get the cell value
+				            $cellValue = $worksheet->getCellByColumnAndRow($col, $row)->getValue();
+				            // Add the cell value to the row data array
+				            $rowData[] = $cellValue;
+				        }
+				       
+				        $data[] = $rowData;
+				    }
+				    
+			        $header = array_shift($data);
+			 	
+			        foreach ($data as $row) {
+			            $row_data = array_combine($header, $row);
+			          	$datasave['job_id'] = $jobid;
+			            $datasave['s_name'] = $row_data['Solvent'];
+			            $datasave['s_value'] = $row_data['Experimental'];
+			            $datasave['temp'] = $row_data['Temp'];
+			            $datasave['created_at'] =  date('Y-m-d H:i:s');
+			            $datasave['status'] = 'Pending';
+
+			           // Check if 's_name' already exists in the database
+					    $existing_data = $this->db->get_where('solubility_correction_data', array('job_id' => $jobid,'s_name' => $row_data['Solvent'],'temp' => $row_data['Temp']))->row_array();
+			
+					    if (!empty($existing_data)) {
+					        // 's_name' already exists, update the record
+					        $this->db->where('job_id', $jobid);
+					        $this->db->where('s_name', $row_data['Solvent']);
+					        $this->db->where('temp', $row_data['Temp']);
+					        $this->db->update('solubility_correction_data', $datasave);
+					    } else {
+					       
+					        $this->db->insert('solubility_correction_data', $datasave);
+					    }
+
+					    /*--------update data in predicted table----------*/
+					    $check_existing_data = $this->db->get_where('solubility_corrected_predicted_data', array('job_id' => $jobid,'ssystem_name' => $row_data['Solvent'],'temp' => $row_data['Temp']))->row_array();
+					   
+					    if (!empty($check_existing_data)) {
+					        // 's_name' already exists, update the record
+					        $this->db->where('job_id', $jobid);
+					        $this->db->where('ssystem_name', $row_data['Solvent']);
+					        $this->db->where('temp', $row_data['Temp']);
+					        $this->db->update('solubility_corrected_predicted_data',['known_solubility'=> $row_data['Experimental']]);
+					    } 
+
+					    
+			        }
+			        
+					$this->session->set_flashdata('alert-type', 'success');
+					$this->session->set_flashdata('alert', 'Uploaded Successfully...');
+					redirect('projects');
+
+				}
+
+		       
+
+	    	} else{
+	    		$this->session->set_flashdata('alert-type', 'error');
+				$this->session->set_flashdata('alert', 'No file uploaded.');
+				redirect('projects');
+	    	}
+	    }
+	    if($type=='3') {
+	    	
+	     	$fileName = $_FILES['file']['name'];
+
+		    $uploadData = array();
+			if (!empty($fileName)) {
+				$config['upload_path'] = './uploads/';
+				$config['allowed_types'] = 'xls|xlsx';
+				$config['max_size'] = 2048;
+				$config['remove_spaces'] = TRUE;
+				$config['encrypt_name'] = TRUE;
+				$this->load->library('upload', $config);
+				$this->upload->initialize($config);
+
+				if (!$this->upload->do_upload('file')) {
+				    json_error("File Upload Error", $this->upload->display_errors(), 400);
+				} else {
+				    $uploadData = $this->upload->data();
+				    $fileName = $uploadData['file_name'];
+				    $filePath = FCPATH . 'uploads/' . $fileName; // Use FCPATH to get the physical path
+				     
+				    $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+				    // Get the first worksheet
+				    $worksheet = $spreadsheet->getActiveSheet();
+				    // Get the highest row and column numbers to determine the data range
+				    $highestRow = $worksheet->getHighestRow();
+				    $highestColumn = $worksheet->getHighestColumn();
+				    $highestColumnIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($highestColumn);
+
+				    // Initialize an array to store the Excel data
+				    $data = array();
+
+				    // Iterate through each row and column to extract data
+				    for ($row = 1; $row <= $highestRow; ++$row) {
+				        $rowData = array();
+				        for ($col = 1; $col <= $highestColumnIndex; ++$col) {
+				            // Get the cell value
+				            $cellValue = $worksheet->getCellByColumnAndRow($col, $row)->getValue();
+				            // Add the cell value to the row data array
+				            $rowData[] = $cellValue;
+				        }
+				       
+				        $data[] = $rowData;
+				    }
+				    
+			        $header = array_shift($data);
+			 
+			        foreach ($data as $row) {
+			            $row_data = array_combine($header, $row);
+			            $datasave['job_id'] = $jobid;
+			            $datasave['s_name'] = $row_data['Solvent'];
+			            $datasave['s_value'] = $row_data['Experimental'];
+			            $datasave['temp'] = $row_data['Temp'];
+			            $datasave['created_at'] =  date('Y-m-d H:i:s');
+			            $datasave['status'] = 'Pending';
+			          
+			           // Check if 's_name' already exists in the database
+					    $existing_data = $this->db->get_where('solubility_correction_data', array('job_id' => $jobid,'s_name' => $row_data['Solvent'],'temp' => $row_data['Temp']))->row_array();
+
+					    if (!empty($existing_data)) {
+					        // 's_name' already exists, update the record
+					        $this->db->where('job_id', $jobid);
+					        $this->db->where('s_name', $row_data['Solvent']);
+					        $this->db->where('temp', $row_data['Temp']);
+					        $this->db->update('solubility_correction_data', $datasave);
+					    } else {
+					        
+					
+
+					        $this->db->insert('solubility_correction_data', $datasave);
+					    }
+
+					    /*--------update data in predicted table----------*/
+					    $check_existing_data = $this->db->get_where('solubility_corrected_predicted_data', array('job_id' => $jobid,'ssystem_name' => $row_data['Solvent'],'temp' => $row_data['Temp']))->row_array();
+					   
+					    if (!empty($check_existing_data)) {
+					        // 's_name' already exists, update the record
+					        $this->db->where('job_id', $jobid);
+					        $this->db->where('ssystem_name', $row_data['Solvent']);
+					        $this->db->where('temp', $row_data['Temp']);
+					        $this->db->update('solubility_corrected_predicted_data',['known_solubility'=> $row_data['Experimental']]);
+					    } 
+			        }
+			        
+					$this->session->set_flashdata('alert-type', 'success');
+					$this->session->set_flashdata('alert', 'Uploaded Successfully...');
+					redirect('projects');
+
+				}
+
+		       
+
+	    	} else{
+	    		$this->session->set_flashdata('alert-type', 'error');
+				$this->session->set_flashdata('alert', 'No file uploaded.');
+				redirect('projects');
+	    	}
+	    }
+
+	}
+	public function downloadSampleExcel() {
+        // Load the file helper
+        $this->load->helper('file');
+
+        // Set the file path
+        $file_path = 'uploads/sample.xlsx'; // Adjust the path as needed
+        //dd($file_path);
+
+        // Check if the file exists
+        if (file_exists($file_path)) {
+            // Set headers for force download
+            header('Content-Description: File Transfer');
+            header('Content-Type: application/octet-stream');
+            header('Content-Disposition: attachment; filename="'.basename($file_path).'"');
+            header('Expires: 0');
+            header('Cache-Control: must-revalidate');
+            header('Pragma: public');
+            header('Content-Length: ' . filesize($file_path));
+            readfile($file_path);
+            exit;
+        } else {
+            // File not found, handle the error or redirect as needed
+            echo 'File not found!';
+        }
+    }
+
+	public function getpredictedSol(){
+		$job_id = $this->input->post('job_id');
+		$this->db->select('job_id,ssystem_name,
+               MAX(CASE WHEN temp = "10" THEN known_solubility END) AS known_solubility_10,
+               MAX(CASE WHEN temp = "10" THEN predicted_solubility END) AS predicted_solubility_10,
+               MAX(CASE WHEN temp = "10" THEN corrected_solubility END) AS corrected_solubility_10,
+               MAX(CASE WHEN temp = "25" THEN known_solubility END) AS known_solubility_25,
+               MAX(CASE WHEN temp = "25" THEN predicted_solubility END) AS predicted_solubility_25,
+               MAX(CASE WHEN temp = "25" THEN corrected_solubility END) AS corrected_solubility_25,
+               MAX(CASE WHEN temp = "50" THEN known_solubility END) AS known_solubility_50,
+               MAX(CASE WHEN temp = "50" THEN predicted_solubility END) AS predicted_solubility_50,
+               MAX(CASE WHEN temp = "50" THEN corrected_solubility END) AS corrected_solubility_50');
+			$this->db->from('solubility_corrected_predicted_data');
+			$this->db->where('job_id', $job_id);
+			$this->db->group_by('ssystem_name');
+			$this->db->order_by('ssystem_name', 'ASC');
+			$query = $this->db->get();
+
+			if (!$query) {
+			    $error = $this->db->error();
+			    echo 'Query error: ' . $error['message'];
+			    // Handle the error as needed
+			} else {
+			    $data = $query->result();
+
+			    // Set the response header to ensure JSON output
+			    header('Content-Type: application/json');
+
+			    // Echo the JSON-encoded data
+			    echo json_encode($data, JSON_PRETTY_PRINT);
+			}
+		
+					
+
+	}
+	public function getpredictedSolnew(){
+		$job_id = $this->input->post('job_id');
+		$filterValues = $this->input->post('filterValues');
+		// Check if filterValues is not null
+		if (!empty($filterValues)) {
+		    // Construct the SQL query with dynamic filtering based on filterValues
+		    $this->db->select('job_id,ssystem_name,
+		                       MAX(CASE WHEN temp = "10" THEN known_solubility END) AS known_solubility_10,
+		                       MAX(CASE WHEN temp = "10" THEN predicted_solubility END) AS predicted_solubility_10,
+		                       FORMAT(MAX(CASE WHEN temp = "10" THEN corrected_solubility END), 3) AS corrected_solubility_10,
+		                       MAX(CASE WHEN temp = "25" THEN known_solubility END) AS known_solubility_25,
+		                       MAX(CASE WHEN temp = "25" THEN predicted_solubility END) AS predicted_solubility_25,
+		                       FORMAT(MAX(CASE WHEN temp = "10" THEN corrected_solubility END), 3) AS corrected_solubility_25,
+		                       MAX(CASE WHEN temp = "50" THEN known_solubility END) AS known_solubility_50,
+		                       MAX(CASE WHEN temp = "50" THEN predicted_solubility END) AS predicted_solubility_50,
+		                      FORMAT(MAX(CASE WHEN temp = "10" THEN corrected_solubility END), 3) AS corrected_solubility_50');
+		    $this->db->from('solubility_corrected_predicted_data');
+		    $this->db->where('job_id', $job_id);
+		    $this->db->group_by('ssystem_name');
+		    $this->db->order_by('ssystem_name', 'ASC');
+
+		    // Apply filters dynamically based on filterValues
+		    foreach ($filterValues as $column => $values) {
+		    	$parts = explode('_', $column);
+		    	$columnName = @$parts[0] . '_' . @$parts[1];
+		    	$temp = @$parts[2];
+		        $max = @$values['max'];
+		        $min = @$values['min'];
+		        // Check if max and min values are not null
+		        if ($max !== null && $min !== null) {
+		            // Add filter conditions to the query
+		            $this->db->where("$columnName >= $min");
+		            $this->db->where("$columnName <= $max");
+		            //$this->db->where_in('temp', [$temp, '10', '25', '50']);
+		            
+		        }
+		    }
+
+		    $query = $this->db->get();
+
+		    if (!$query) {
+		        $error = $this->db->error();
+		        echo 'Query error: ' . $error['message'];
+		        // Handle the error as needed
+		    } else {
+		        $data = $query->result();
+
+		        // Set the response header to ensure JSON output
+		        header('Content-Type: application/json');
+
+		        // Echo the JSON-encoded data
+		        echo json_encode($data, JSON_PRETTY_PRINT);
+		    }
+		} else{
+
+
+			$this->db->select('job_id,ssystem_name,
+			                   MAX(CASE WHEN temp = "10" THEN known_solubility END) AS known_solubility_10,
+			                   MAX(CASE WHEN temp = "10" THEN predicted_solubility END) AS predicted_solubility_10,
+			                   FORMAT(MAX(CASE WHEN temp = "10" THEN corrected_solubility END), 3) AS corrected_solubility_10,
+			                   MAX(CASE WHEN temp = "25" THEN known_solubility END) AS known_solubility_25,
+			                   MAX(CASE WHEN temp = "25" THEN predicted_solubility END) AS predicted_solubility_25,
+			                   FORMAT(MAX(CASE WHEN temp = "10" THEN corrected_solubility END), 3) AS corrected_solubility_25,
+			                   MAX(CASE WHEN temp = "50" THEN known_solubility END) AS known_solubility_50,
+			                   MAX(CASE WHEN temp = "50" THEN predicted_solubility END) AS predicted_solubility_50,
+			                   FORMAT(MAX(CASE WHEN temp = "10" THEN corrected_solubility END), 3) AS corrected_solubility_50');
+			$this->db->from('solubility_corrected_predicted_data');
+			$this->db->where('job_id', $job_id);
+			$this->db->group_by('ssystem_name');
+			$this->db->order_by('ssystem_name', 'ASC');
+			$query = $this->db->get();
+
+			if (!$query) {
+			    $error = $this->db->error();
+			    echo 'Query error: ' . $error['message'];
+			    // Handle the error as needed
+			} else {
+			    $data = $query->result();
+
+			    // Set the response header to ensure JSON output
+			    header('Content-Type: application/json');
+
+			    // Echo the JSON-encoded data
+			    echo json_encode($data, JSON_PRETTY_PRINT);
+			}
+		}
+					
+
+	}
+
+	public function run_solubility_correction($id){
+		$jobdetails= $this->projects_model->getJobdetails1($id);
+
+		$projectName = $this->projects_model->getProjectName($jobdetails[0]->project_id);
+
+		$solu_correction = $this->projects_model->getPython();
+		$this->db->select('id, job_id, ssystem_name, known_solubility, predicted_solubility, corrected_solubility, temp, created_at');
+		$this->db->from('solubility_corrected_predicted_data');
+		
+		$this->db->where('job_id', $id);
+		$this->db->order_by('id', 'asc'); // Then by temperature ascending
+		$query = $this->db->get();
+		$data = $query->result();
+
+		if ($data) {
+			$ssh = new Net_SSH2('128.199.31.121',22);
+			if (!$ssh->login('chemistry1', 'Ravi@1234')) {
+				exit('Login Failed');
+			}
+	
+			$ssh->exec('cd /home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src/opencosmorspy');
+		
+			$directory = '/home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src/opencosmorspy';
+        	
+			$file_path = $this->createExcel($data,$projectName);
+			$new_file_path = '/home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src/'.$projectName.'_new_predictions.xlsx'.
+			
+			$input_file_path = "FILEFULLPATH";
+			$replace_input_file_path = "'".$file_path."'";
+
+			$input_new_file_path = "NEWFILENAME";
+			$replace_new_file_path = "'".$new_file_path."'";
+
+
+			$file_contents = $solu_correction[0]->solu_correction;
+			
+			$file_contents = str_replace($input_file_path, $replace_input_file_path, $file_contents);
+			
+			$file_contents = str_replace($input_new_file_path, $replace_new_file_path, $file_contents);
+			$file_contents = str_replace('FILEFULLPATH','', $file_contents);
+			//dd($file_contents);
+			
+			
+			
+
+			// Escape single quotes in the file contents
+			 $fileContents = str_replace("'", "'\\''", $file_contents);
+
+			//echo $file_contents;
+
+			// Execute the Python script from the variable
+			$command = 'cd /home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src; nohup python3 -c \'' . $fileContents . '\'';
+			//dd($command);
+
+			$stream = $ssh->exec($command);
+			// Check if $stream has output
+			while (empty($stream)) {
+			    // Add a delay before checking again
+			    usleep(500000); // 0.5 seconds
+
+			    // Retrieve the updated $stream
+			    $stream = $ssh->exec($command);
+			}
+			// Extract numeric values from the JSON string using regular expression
+			preg_match_all('/[\d.]+/', $stream, $matches);
+
+			// Combine the matched values into a single string
+			$cleanedString = implode(', ', $matches[0]);
+
+
+			$finalDatas = explode(',',$cleanedString);
+
+
+			$successCount = 0;
+			if (!empty($finalDatas)) {
+			    foreach ($finalDatas as $i => $value) {
+			        $index = $i; // Assuming your index starts from 0
+
+			        // Check if the index exists in your $data array
+			        if (isset($data[$index])) {
+			            $row = $data[$index];
+			            //dd($row);
+			            // Update the record with the corresponding index from $dataj
+			            $updated_data = [
+			                'corrected_solubility' => $value,
+			            ];
+
+			            $this->db->where('id', $row->id);
+			            $result = $this->db->update('solubility_corrected_predicted_data', $updated_data);
+			            if ($result) {
+			                $successCount++;
+			            }
+
+			        } else {
+			            // Handle the case where the index does not exist in $data
+			            echo "";
+			        }
+			    }
+			 if ($successCount == count($finalDatas)) {
+		        echo "Done";
+		    } else {
+		        echo "Done";
+		    }
+    
+			} else {
+			    // Handle the case where $dataj is empty or not valid JSON
+			    echo "Error decoding JSON data from $stream.";
+			}
+	    } else {
+	        // No data found, display error message or handle accordingly
+	        echo "No data found in the table.";
+	    }
+
+	}
+	private function createExcel($data,$projectName) {
+        // Create a new Spreadsheet object
+        $spreadsheet = new Spreadsheet();
+        
+        // Set the active sheet
+        $sheet = $spreadsheet->getActiveSheet();
+        
+        // Set column headers
+        $sheet->setCellValue('A1', 'Experimental');
+        $sheet->setCellValue('B1', 'Predicted');
+        
+        //cted solubility array
+        
+        // Add data to the Excel file
+        $row = 2; // Start from row 2 for data
+        foreach ($data as $solubility) {
+        	$known_solubility  = ($solubility->known_solubility =='0') ? '0' : $solubility->known_solubility;
+        	$predicted_solubility  = ($solubility->predicted_solubility =='0') ? '0' : $solubility->predicted_solubility;
+            $sheet->setCellValue('A' . $row, $known_solubility);
+            $sheet->setCellValue('B' . $row, $predicted_solubility);
+            $row++;
+        }
+        
+ 
+        // Save the Excel file
+        $fname = $projectName.'.xlsx';
+        $directory_path = '/home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src/'.$fname; //
+        $writer = new Xlsx($spreadsheet);
+        $file_path = '/home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src/'.$fname; // Adjust the path and file name as needed
+        $writer->save($file_path);
+        chmod("/home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src/$fname", 0777);
+
+        /*------------Save blanl excel------------*/
+        // Create a new spreadsheet
+	    $blankSpreadsheet = new Spreadsheet();
+
+	    // Get the active sheet
+	    $sheet = $blankSpreadsheet->getActiveSheet();
+
+	    // Set column headers
+	    $sheet->setCellValue('A1', 'Experimental');
+	    $sheet->setCellValue('B1', 'Predicted');
+	    $sheet->setCellValue('C1', 'Corrected Predicted');
+	     // Add data to the Excel file
+        $row = 2; // Start from row 2 for data
+        foreach ($data as $solubility) {
+        	$known_solubility  = ($solubility->known_solubility =='0') ? '0' : $solubility->known_solubility;
+        	$predicted_solubility  = ($solubility->predicted_solubility =='0') ? '0' : $solubility->predicted_solubility;
+            $sheet->setCellValue('A' . $row, $known_solubility);
+            $sheet->setCellValue('B' . $row, $predicted_solubility);
+            $sheet->setCellValue('C' . $row, NULL);
+            $row++;
+        }
+	    $blankWriter = new Xlsx($blankSpreadsheet);
+
+	    // Save the blank Excel file
+	    $blankFileName = $projectName .'_new_predictions.xlsx';
+	    $blankFilePath = '/home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src/' . $blankFileName;
+	    $blankWriter->save($blankFilePath);
+	    chmod($blankFilePath, 0777);
+        return $file_path;
+    }
+	private function validateColumns($requiredColumns, $actualColumns) {
+        return empty(array_diff($requiredColumns, $actualColumns));
+    }
+
+    private function insertData($sheet) {
+        // Assuming your table name is 'excel_data'
+        $data = [];
+        foreach ($sheet->getRowIterator() as $row) {
+            $rowData = [];
+            foreach ($row->getCellIterator() as $cell) {
+                $rowData[] = $cell->getValue();
+            }
+            $data[] = $rowData;
+        }
+        $this->db->insert_batch('excel_data', $data);
+    }
+
+	public function addSolubiltiy($jobid){
+
+		$this->page_data['jobDetail'] = $this->projects_model->getJobdetails1($jobid);
+
+		$this->page_data['cdata'] = $this->projects_model->getsolvents_all();
+		$this->page_data['solubiltyData'] = $this->projects_model->solubiltyDataforCorrection($jobid);
+		$this->load->view('projects/addSolubiltiy', $this->page_data);
 
 	}
 
@@ -3932,6 +4629,204 @@ $item = $row['solvent1_name'];
 	}
 
 }
+
+
+public function phSolubility() {
+	$id= $this->input->post('job_id');
+	
+	
+	$this->ph_solubility($id,'10');
+	$this->db->where('job_id', $id);
+	$this->db->where('solvent_type','ph_12');
+	$this->db->where('tempr', "10");
+	$this->db->update('job_results_ph_count', array('status'=>'Completed'));
+
+	$this->ph_solubility($id,'25');
+	$this->db->where('job_id', $id);
+	$this->db->where('solvent_type','ph_12');
+	$this->db->where('tempr', "25");
+	$this->db->update('job_results_ph_count', array('status'=>'Completed'));
+
+	$this->ph_solubility($id,'50');
+	$this->db->where('job_id', $id);
+	$this->db->where('solvent_type','ph_12');
+	$this->db->where('tempr', "50");
+	$this->db->update('job_results_ph_count', array('status'=>'Completed'));
+
+	$this->ph_solubility($id,'50');
+
+
+	
+	
+
+	
+
+}
+
+/*---------------------Ph SOLUBILITY-----------------------------------*/
+public function ph_solubility($id,$temp) {
+		
+		
+		if($temp=="10") {
+			$temparature="283.15";
+			$temp10="10";
+			$temp20="";
+			$temp50="";
+		}
+		if($temp=="25") {
+			$temparature="298.15";
+			$temp10="";
+			$temp20="25";
+			$temp50="";
+		}
+		
+		else if ($temp=="50") {
+			$temparature="323.15";
+			$temp10="";
+			$temp20="";
+			$temp50="50";
+		}
+	
+
+		$info="";
+		$jobdetails= $this->projects_model->getJobdetails1($id);
+		$ssh = new Net_SSH2('128.199.31.121',22);
+		if (!$ssh->login('chemistry1', 'Ravi@1234')) {
+			exit('Login Failed');
+		}
+
+
+		$checkjobphinsertornot = $this->projects_model->checkjobphinsertcheck($id);
+	    if($checkjobphinsertornot){
+	       	$this->projects_model->insertphresults($jobdetails[0]->project_id,'10');
+	        $this->projects_model->insertphresults($jobdetails[0]->project_id,'25');
+	        $this->projects_model->insertphresults($jobdetails[0]->project_id,'50');
+	        echo "done";
+	        $ssh->disconnect();
+	        exist();
+	    }
+
+
+		$this->db->select('*');
+	    $this->db->from('ph_solvents_commands');
+	    $this->db->order_by('id', 'ASC');
+	    $query = $this->db->get();
+
+	    $fname = pathinfo($jobdetails[0]->inp_filename, PATHINFO_FILENAME);
+		
+		
+
+		$ssh->exec('cd /home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src/opencosmorspy');
+
+		$directory = '/home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src/opencosmorspy';
+
+		$file = strtotime("today")*1000+rand(10000,99999).".py";
+
+		// Define file path and contents
+		$file_path = '/home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src/opencosmorspy/'.$file;
+		$i = 0;
+	    if ($query->num_rows() > 0) {
+	    	$jid = $this->projects_model->addphactivity_log([
+				'job_id' => $jobdetails[0]->id,
+				'solvent_type' => 'ph_12',
+				'tempr' => $temp,
+				'solvents_count' => 12,
+				'solvent_activity_finished' => '',
+				'process_start	' => date('m/d/Y h:i:s a', time()),
+				'status' => 'Pending'
+			
+			]);
+	        foreach ($query->result() as  $key => $row ) {
+	           // Open file and print contents
+
+	        	
+				if (!empty($row->command )) {
+					
+
+					$input_string = "INPUT_COSMO";
+					$replace_input_string= "['opencosmorspy/".$fname."/COSMO_TZVPD/".$fname."_c000.orcacosmo']";
+					// Read file contents
+
+					$input_temp = "TEMPR";
+					$replace_input_temp = $temparature;
+
+					$file_contents = $row->command;
+					
+					// Replace search string with replace string
+					$file_contents = str_replace($input_string, $replace_input_string, $file_contents);
+					$file_contents = str_replace($input_temp, $replace_input_temp, $file_contents);
+
+
+					// Escape single quotes in the file contents
+					$fileContents = str_replace("'", "'\\''", $file_contents);
+
+					//echo $file_contents;
+
+					// Execute the Python script from the variable
+					$command = 'cd /home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src; nohup python3 -c \'' . $fileContents . '\'';
+					$stream = shell_exec($command);
+					//dd($response);
+					/*$stream = $ssh->exec($command);
+					
+					// Check if $stream has output
+					while (empty($stream)) {
+					    // Add a 1 before checking again
+					    sleep(1); // 0.5 seconds
+
+					    // Retrieve the updated $stream
+					    $stream = $ssh->exec($command);
+					}*/
+					//dd($stream);
+					//die;
+					//$filePath = '/home/chemistry1/einnel/opencosmos/openCOSMO-RS_py/src/output.txt';
+					//$written = file_put_contents($filePath, $stream, FILE_APPEND);
+
+					$dataj= json_decode($stream, true);
+
+			
+					// Accessing the value for "data1"
+					
+					$data1 = @$dataj['data1'];
+					$data2 = @$dataj['data2'];
+					
+					$id = $this->projects_model->createjobPhresults([
+						'job_id' => $jobdetails[0]->id,
+						's_id' => $row->id,
+						'solvents' => $row->solvent,
+						'result_type' => 'ph_12',
+						'pure_data1' => @$data1[0] . ", " . @$data1[1] . ", " . @$data1[2] . ", " . @$data1[3] ,
+						'pure_data2' => @$data2[0] . ", " . @$data2[1] . ", " . @$data1[2] . ", " . @$data1[3] ,
+						'input_temp_10' => $temp10,
+						'input_temp_20' => $temp20,
+						'input_temp_50	' => $temp50,
+						'solvent_result_name	' =>$fname,
+						'solvent_result	' => $stream,
+						'processed_on	' => date('m/d/Y h:i:s a', time()),
+					]);
+				
+					$this->db->where('id', $jid);
+					$this->db->update('job_results_ph_count', array('solvent_activity_finished'=>$key+1,'process_end'=>date('m/d/Y h:i:s a', time())));
+					
+					if($query->num_rows() == $key+1) {
+						$this->db->where('id', $jid);
+						$this->db->update('job_results_ph_count', array('status'=>'Completed'));
+				
+					}
+
+			
+					 //echo "done";
+				} else {
+					exit('File open failed');
+				}
+	        }
+
+
+	        
+	    }
+
+		//$ssh->disconnect();
+	
+	}
 	public function generatePdf($id)
 	{
 		set_time_limit(120);
@@ -4064,18 +4959,65 @@ $item = $row['solvent1_name'];
 		$sheet->setCellValue('Q17', '50CYL');
 
 		$count = 18;
+		$pureDataArray = [
+            'pure_data1' => '(0.0, 0.1, 0.9)',
+            'pure_data2' => '(0.0, 0.25, 0.75)',
+            'pure_data3' => '(0.0, 0.5, 0.5)',
+            'pure_data4' => '(0.0, 0.75, 0.25)',
+            'pure_data5' => '(0.0, 0.9, 0.1)',
+        ];
 
+        $terDataArray = [
+            'pure_data1' => '(0.0, 0.1, 0.75, 0.15)',
+            'pure_data2' => '(0.0, 0.25, 0.50, 0.25)',
+            'pure_data3' => '(0.0, 0.5, 0.25, 0.25)'
+        ];
 		foreach($this->page_data['cdata'] as $key=>$value)
 		{
+			
+			$solventName = $value['Solvent_System'];
+			//dd($value);
+         	$wt_fraction = $value['wt_fraction'];
+         	$Comp_1 = $value['Comp_1'];
+         	$Comp_2 = $value['Comp_2'];
+         	$Comp_3 = $value['Comp_3'];
+         
+            if ($value['result_type'] != "Pure_68" && $value['result_type'] != "Tertiary-16400") {
+              
+                $solventName = $solventName . "-" . str_replace("-", $pureDataArray[$value['wt_fraction']], $pureDataArray[$value['wt_fraction']]);
+                $wt_fraction =  str_replace("-", $pureDataArray[$value['wt_fraction']], $pureDataArray[$value['wt_fraction']]);
+
+                $trim_wt_fraction =  trim($wt_fraction, "()");
+	            $expload_fraction = explode(',',$trim_wt_fraction);
+	            
+	            $Comp_1 = @$expload_fraction[1] ;
+	            $Comp_2 = @$expload_fraction[2] ;
+	            $Comp_3 = @$expload_fraction[3] ;
+            } elseif ($value['result_type'] === "Tertiary-16400") {
+              
+                $solventName = $solventName . "-" . str_replace("-", $terDataArray[$value['wt_fraction']], $terDataArray[$value['wt_fraction']]);
+                $wt_fraction = str_replace("-", $terDataArray[$value['wt_fraction']], $terDataArray[$value['wt_fraction']]);
+                $trim_wt_fraction =  trim($wt_fraction, "()");
+	            $expload_fraction = explode(',',$trim_wt_fraction);
+	           
+	            $Comp_1 = @$expload_fraction[1] ;
+	            $Comp_2 = @$expload_fraction[2] ;
+	            $Comp_3 = @$expload_fraction[3] ;
+            } else {
+                $solventName = $value['Solvent_System'];
+                $wt_fraction = $value['wt_fraction'];
+            }
+           
+
 			// $solvent = $this->projects_model->getSolventDataBySid($value['result_job_id']);
 			$sheet->setCellValue('A' . $count, $key + 1);
-			$sheet->setCellValue('B' . $count, $value['Solvent_System']);
+			$sheet->setCellValue('B' . $count, $solventName);
 			$sheet->setCellValue('C' . $count, $value['Solvent_1']);
 			$sheet->setCellValue('D' . $count, $value['Solvent_2']);
 			$sheet->setCellValue('E' . $count, $value['Solvent_3']);
-			$sheet->setCellValue('F' . $count, $value['Comp_1']);
-			$sheet->setCellValue('G' . $count, $value['Comp_2']);
-			$sheet->setCellValue('H' . $count, $value['Comp_3']);
+			$sheet->setCellValue('F' . $count, $Comp_1);
+			$sheet->setCellValue('G' . $count, $Comp_2);
+			$sheet->setCellValue('H' . $count, $Comp_3);
 			$sheet->setCellValue('I' . $count,  number_format(((float)$value['10_cmgml']),2,'.',''));
 			$sheet->setCellValue('J' . $count, number_format(((float)$value['10_cvl']),2,'.',''));
 			$sheet->setCellValue('K' . $count, number_format(((float)$value['10_cyl']),2,'.',''));
@@ -4203,6 +5145,174 @@ $item = $row['solvent1_name'];
 		// Output CSV data
 		echo $csvData;
 	}
+
+	public function generatePhExcel($id)
+	{
+		set_time_limit(120);
+		$this->page_data['cdata'] =  $this->projects_model->getDataForPhExcel($id);
+
+		// dd($this->page_data['cdata'][0]['result_job_id']);
+		$this->page_data['jobDetail'] = $this->projects_model->getJobDetail($id);
+		$project_details = $this->projects_model->getById($this->page_data['jobDetail']->project_id);
+		$file_name = 'Ph-'.$project_details->{'project_name'}.'.xlsx';
+
+		$spreadsheet = new Spreadsheet();
+
+		$sheet = $spreadsheet->getActiveSheet();
+		$from = "A1"; // or any value
+		$to = "A11"; // or any value
+		$sheet->getStyle("$from:$to")->getFont()->setBold( true );
+
+		$from1 = "A17"; // or any value
+		$to1 = "Q17"; // or any value
+		$sheet->getStyle("$from1:$to1")->getFont()->setBold( true );
+
+		$sheet->getStyle("B12")->getFont()->setBold( true );
+		$sheet->getStyle("C12")->getFont()->setBold( true );
+		$sheet->getStyle("D12")->getFont()->setBold( true );
+
+		$sheet->getStyle("C12")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID) ->getStartColor()->setARGB('00a0bfe0');
+		$sheet->getStyle("D12")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID) ->getStartColor()->setARGB('00a0bfe0');
+		$sheet->getStyle("$from1:$to1")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID) ->getStartColor()->setARGB('00a0bfe0');
+
+		$sheet->setCellValue('A1', 'Project Name');
+		$sheet->setCellValue('B1', '');
+		$sheet->setCellValue('C1', $project_details->{'project_name'});
+
+		$sheet->setCellValue('A2', 'Developed By');
+		$sheet->setCellValue('B2', '');
+		$sheet->setCellValue('C2', 'PharmaDEM Solutions Logo');
+
+		$sheet->setCellValue('A3', 'Job Submission Date');
+		$sheet->setCellValue('B3', '');
+		$sheet->setCellValue('C3', $this->page_data['jobDetail']->process_start);
+
+		$sheet->setCellValue('A4', 'Submitted By');
+		$sheet->setCellValue('B4', '');
+		$sheet->setCellValue('C4', 'Ravi');
+
+		$sheet->setCellValue('A5', 'Api Name');
+		$sheet->setCellValue('B5', '');
+		$sheet->setCellValue('C5', $project_details->{'project_name'});
+
+		$sheet->setCellValue('A6', 'Expt Imformation');
+		$sheet->setCellValue('B6', '');
+		$sheet->setCellValue('C6', 'hfuss_value = '.$this->page_data['jobDetail']->hfuss_value);
+		
+
+		$sheet->setCellValue('A7', '');
+		$sheet->setCellValue('B7', '');
+		$sheet->setCellValue('C7', 'MP = ');
+
+		$sheet->setCellValue('A8', '');
+		$sheet->setCellValue('B8', '');
+		$sheet->setCellValue('C8', 'MW = '.$this->page_data['jobDetail']->mol_weight);
+
+		$sheet->setCellValue('A9', 'Known Solubility Imformation');
+		$sheet->setCellValue('B9', '');
+		$sheet->setCellValue('C9', $this->page_data['jobDetail']->know_solubility);
+
+		$sheet->setCellValue('A10', 'Structure Smiles');
+		$sheet->setCellValue('B10', '');
+		$sheet->setCellValue('C10', $this->page_data['jobDetail']->structure_code.' '.$this->page_data['jobDetail']->smiles);
+
+		$sheet->setCellValue('A11', 'General Notes');
+		$sheet->setCellValue('B11', '');
+		$sheet->setCellValue('C11', 'PharmaDEM Solutions Logo');
+
+		$sheet->setCellValue('A12', '');
+		$sheet->setCellValue('B12', 'Solubility Class');
+		$sheet->setCellValue('C12', 'Category');
+		$sheet->setCellValue('D12', 'Mg/ml');
+
+		$sheet->setCellValue('A13', '');
+		$sheet->setCellValue('B13', '');
+		$sheet->setCellValue('C13', 'Highly Soluble');
+		$sheet->setCellValue('D13', '>100');
+
+		$sheet->setCellValue('A14', '');
+		$sheet->setCellValue('B14', '');
+		$sheet->setCellValue('C14', 'Soluble');
+		$sheet->setCellValue('D14', '50 to 100');
+
+		$sheet->setCellValue('A15', '');
+		$sheet->setCellValue('B15', '');
+		$sheet->setCellValue('C15', 'Moderate');
+		$sheet->setCellValue('D15', '10 to 50');
+
+		$sheet->setCellValue('A16', '');
+		$sheet->setCellValue('B16', '');
+		$sheet->setCellValue('C16', 'Insoluble');
+		$sheet->setCellValue('D16', '<10');
+
+		$sheet->setCellValue('A17', 'Solvent Id');
+		$sheet->setCellValue('B17', 'Solvent System');
+		$sheet->setCellValue('I17', '10CMGML');
+		$sheet->setCellValue('L17', '25CMGML');
+		$sheet->setCellValue('O17', '50CMGML');
+
+		$count = 18;
+
+		foreach($this->page_data['cdata'] as $key=>$value)
+		{
+			// $solvent = $this->projects_model->getSolventDataBySid($value['result_job_id']);
+			$sheet->setCellValue('A' . $count, $key + 1);
+			$sheet->setCellValue('B' . $count, $value['Solvent_System']);
+			$sheet->setCellValue('I' . $count,  number_format(((float)$value['10_cmgml']),2,'.',''));
+			$sheet->setCellValue('L' . $count,  number_format(((float)$value['25_cmgml']),2,'.',''));
+			$sheet->setCellValue('O' . $count,  number_format(((float)$value['50_cmgml']),2,'.',''));
+
+			$count++;
+		}
+
+		$writer = new Xlsx($spreadsheet);
+
+		$writer->save($file_name);
+
+		header("Content-Type: application/vnd.ms-excel");
+
+		header('Content-Disposition: attachment; filename="' . basename($file_name) . '"');
+
+		header('Expires: 0');
+
+		header('Cache-Control: must-revalidate');
+
+		header('Pragma: public');
+
+		header('Content-Length:' . filesize($file_name));
+
+		flush();
+
+		readfile($file_name);
+
+		exit;   
+	}
+
+	public function generatePhPdf($id)
+	{
+		set_time_limit(120);
+		ini_set('max_exection_time', 60);
+		ini_set("pcre.backtrack_limit", "50000000");
+		$this->page_data['cdata'] =  $this->projects_model->getDataForPhExcel($id);
+		$this->page_data['jobDetail'] = $this->projects_model->getJobDetail($id);
+		$project_details = $this->projects_model->getById($this->page_data['jobDetail']->project_id);
+		// $this->page_data['solventData'] = $this->projects_model->getresultsdata($id);
+		$mpdf = new \Mpdf\Mpdf();
+		$html = $this->load->view('projects/pdf_ph',$this->page_data,true);
+		$mpdf->WriteHTML($html);
+		$pdfFilename = 'Ph-'.$project_details->{'project_name'}.".pdf";
+		$mpdf->Output($pdfFilename, "D");     
+	}	
+
+
+	public function solubilityCorrection($id) {
+
+      	$this->page_data['jstatus'] = $this->projects_model->getJobdetails($id);
+        $this->load->view('projects/solubility_correction', $this->page_data);
+     
+     }
+
+
 
 }
 

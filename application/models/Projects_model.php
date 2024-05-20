@@ -130,6 +130,18 @@ return $last->id;
 		return $pname;
 
 	}
+	public function getResultsDataNew($table,$job_id,$temp,$ssystem_name)
+	{
+	
+		$this->db->select('*');
+		$this->db->from($table);
+		$this->db->where('job_id', $job_id);
+		$this->db->where('ssystem_name', $ssystem_name);
+		$query = $this->db->get();
+		$result = $query->row();
+		return $result;
+
+	}
 
 	public function getJobDetailByproject($id) {
 		$this->db->select('*');
@@ -285,12 +297,35 @@ return $last->id;
         // Loop through the three tables
         $tables = ['results_data_10', 'results_data_25', 'results_data_50'];
         foreach ($tables as $key => $table) {
-        	// Create a new query for each table
-        	$this->db->select('
-        		' . $table . '.*');
-        	$this->db->from($table);
-        	$this->db->where($table . '.job_id', $id);
-            //$this->db->limit(10);
+        	if($table == 'results_data_10')
+        	{
+    		    // Create a new query for each table
+    			$this->db->select('
+    				' . $table . '.*, 
+    				job_results.s_id AS job_s_id, job_results.id AS job_res_id,job_results.result_type,
+    				solvents_master.*
+    				');
+    			$this->db->from($table);
+    			$this->db->join('job_results', 'job_results.id = ' . $table . '.result_job_id', 'left');
+    			$this->db->join('solvents_master', 'solvents_master.s_id = job_results.s_id', 'left');
+    			// $this->db->join('sresults', 'sresults.solvent_id = job_results.s_id', 'left');
+    			$this->db->where($table . '.job_id', $id);
+    		    //$this->db->limit(10);
+        	}
+        	else
+        	{
+        		// Create a new query for each table
+	        	$this->db->select('
+	        		' . $table . '.*, 
+	        		job_results.s_id AS job_s_id, job_results.id AS job_res_id
+	        		');
+	        	$this->db->from($table);
+	        	$this->db->join('job_results', 'job_results.id = ' . $table . '.result_job_id', 'left');
+	        	// $this->db->join('solvents_master', 'solvents_master.s_id = job_results.s_id', 'left');
+	        	// $this->db->join('sresults', 'sresults.solvent_id = job_results.s_id', 'left');
+	        	$this->db->where($table . '.job_id', $id);
+	            //$this->db->limit(10);
+        	}
            
 
             // Execute the query and append results to the respective array
@@ -309,6 +344,9 @@ return $last->id;
         foreach ($results_10 as $index => $value) {
     		$data[] = [
     			'result_job_id' => $value->{'result_job_id'},
+    			'ssystem_name' => $value->{'ssystem_name'},
+    			'wt_fraction' => $value->{'wt_fraction'},
+    			'result_type' => $value->{'result_type'},
     			'10_cmgml' => $value->{'10cmgml'},
     			'25_cmgml' => $results_25[$index]->{'25cmgml'},
     			'50_cmgml' => $results_50[$index]->{'50cmgml'},
@@ -334,7 +372,7 @@ return $last->id;
     		    // Create a new query for each table
     			$this->db->select('
     				' . $table . '.*, 
-    				job_results.s_id AS job_s_id, job_results.id AS job_res_id,
+    				job_results.s_id AS job_s_id, job_results.id AS job_res_id,job_results.result_type,
     				solvents_master.*
     				');
     			$this->db->from($table);
@@ -388,6 +426,8 @@ return $last->id;
     			'10_cmgml' => $value->{'10cmgml'},
     			'10_cvl' => $value->{'10cvl'},
     			'10_cyl' => $value->{'10cyl'},
+    			'result_type' => $value->{'result_type'},
+    			'wt_fraction' => $value->{'wt_fraction'},
     			'25_cmgml' => $results_25[$index]->{'25cmgml'},
     			'25_cvl' => $results_25[$index]->{'25cvl'},
     			'25_cyl' => $results_25[$index]->{'25cyl'},
@@ -398,6 +438,45 @@ return $last->id;
     	}
         return $data;
 	}
+
+	public function getDataForPhExcel($id){
+
+    $jbd = $this->projects_model->getJobDetail($id);
+    // Define arrays to hold results for each table for the current project
+    $this->db->select('ssystem_name, temp, cmgml,id');
+    $this->db->from('ph_solubility_results');
+    $this->db->where('job_id', $id);
+    $this->db->where('temp','10');
+    $this->db->order_by('id', 'ASC');
+    $query = $this->db->get();
+    $results = $query->result();
+    $data = [];
+
+    foreach ($results as $index => $value) {
+        $this->db->select('cmgml');
+        $this->db->from('ph_solubility_results');
+        $this->db->where('job_id', $id);
+        $this->db->where('temp','25');
+        $this->db->where('ssystem_name', $value->ssystem_name);
+        $get25Mgml = $this->db->get()->row()->cmgml;
+
+        $this->db->select('cmgml');
+        $this->db->from('ph_solubility_results');
+        $this->db->where('job_id', $id);
+        $this->db->where('temp','50');
+        $this->db->where('ssystem_name', $value->ssystem_name);
+        $get50Mgml = $this->db->get()->row()->cmgml;
+
+        $data[] = [
+            'Solvent_System' => $value->ssystem_name,
+            '10_cmgml' => $value->cmgml,
+            '25_cmgml' => $get25Mgml,
+            '50_cmgml' => $get50Mgml,
+        ];
+    }
+    return $data;
+}
+
 	public function checktempprocess($id,$temp) {
 
 		$this->db->where('job_id', $id);
@@ -433,6 +512,17 @@ return $last->id;
 	public function createjobresults($data) {
 
 		$this->db->insert('job_results', $data);
+        
+        if ($this->db->affected_rows() > 0) {
+            return true;
+        } else {
+            return false;
+        }
+
+	}
+	public function createjobPhresults($data) {
+
+		$this->db->insert('job_ph_results', $data);
         
         if ($this->db->affected_rows() > 0) {
             return true;
@@ -722,6 +812,13 @@ public function gettempcalcs()
 		return  $insertId;
 
 	}
+	public function addphactivity_log($data) {
+
+		$this->db->insert('job_results_ph_count', $data);   
+		$insertId = $this->db->insert_id();
+		return  $insertId;
+
+	}
 
 	public function checkjobexists($id) {
 
@@ -769,6 +866,17 @@ public function checkjobresultsexitsA($jtype,$jid){
 
 }
 
+public function checkjobresultsexitsPh($jid){
+
+	$this->db->where('job_id', $jid);
+	$this->db->where('solvent_activity_finished IS NOT NULL');
+	$query = $this->db->get('job_results_ph_count');
+
+	
+	return $query->result_array();
+
+}
+
 	public function checkactivityexists($id) {
 		//echo $id;
 
@@ -782,6 +890,20 @@ public function checkjobresultsexitsA($jtype,$jid){
 		}
 
 	}
+	public function checkactivityphexists($id) {
+		//echo $id;
+
+		$query = $this->db->query("SELECT DISTINCT(jrc.solvent_type) FROM `jobs_master` jm, job_ph_results jr, job_results_ph_count jrc where jm.id=jr.job_id and jr.job_id=jrc.job_id and jm.project_id=$id ");
+
+		//echo $this->db->last_query();
+		// validate user
+		if(!empty($query) && $query->num_rows() > 0){
+			//echo $query->num_rows();
+			return true;
+		}
+
+	}
+
 
 	function results_summary_data($data){
 		$this->db->insert('results_data',$data);
@@ -822,6 +944,18 @@ public function checkjobresultsexitsA($jtype,$jid){
 	{
     	$this->db->where('job_id',$job_id);
     	$query = $this->db->get('job_status');
+		//echo $this->db->last_query();
+    	if ($query->num_rows() > 0){
+        return true;
+    	}
+    	else{
+        return false;
+    	}
+	}
+	function job_ph_exists($job_id)
+	{
+    	$this->db->where('job_id',$job_id);
+    	$query = $this->db->get('job_ph_status');
 		//echo $this->db->last_query();
     	if ($query->num_rows() > 0){
         return true;
@@ -950,6 +1084,7 @@ public function getPendingpatches($id)
 		}
 
 		$data = array();
+		$addSolubility = array();
 	
 		foreach ($results_10 as $row)  {  // Call function to get values
   
@@ -977,13 +1112,41 @@ public function getPendingpatches($id)
 			 'wt_fraction' => $pureDataField
 
    		 );
-	}
-}	
+
+
+   	 	/*----------Solubility prediction data for 10-------------*/
+
+		$existing_data = $this->db->get_where('solubility_correction_data', array(
+		    'job_id' => $job_id,
+		    's_name' => $ssystem_name,
+		    'temp' => '10' // Assuming 'temp' is another column you want to match
+		))->row_array();
+		if (!empty($existing_data)) {
+		    $known_solubility = $existing_data['s_value'];
+		} else {
+		    $known_solubility = 0;
+		}
+		$addSolubility[] = array(
+      	 	 'result_job_id' =>  (int)$result_job_id,
+       		 'job_id' => (int)$job_id,
+       		 'ssystem_name' => $ssystem_name,
+			 'known_solubility' => $known_solubility,
+			 'predicted_solubility' => $tencmgml,
+			 'temp' => '10',
+			 'created_at' => date('Y-m-d H:i:s'),
+			 
+
+   		 );
+		
+		}
+	}	
 		// Insert the data using batch insert
 
 		$this->db->insert_batch('results_data_10', $data);
 
-		
+		/*----------Solubility prediction data for 10-------------*/
+		$this->db->insert_batch('solubility_corrected_predicted_data', $addSolubility);
+
 		$exists	=    $this->projects_model->job_exists($jbd[0]->id);
 		
 
@@ -1050,6 +1213,7 @@ public function getPendingpatches($id)
 		}
 
 		$data = array();
+		$addSolubility = array();
 	
 		foreach ($results_10 as $row)  {  // Call function to get values
   
@@ -1078,11 +1242,38 @@ public function getPendingpatches($id)
 
 
    		 );
+
+
+   	 	/*----------Solubility prediction data for 10-------------*/
+
+		$existing_data = $this->db->get_where('solubility_correction_data', array(
+		    'job_id' => $job_id,
+		    's_name' => $ssystem_name,
+		    'temp' => '25' // Assuming 'temp' is another column you want to match
+		))->row_array();
+		if (!empty($existing_data)) {
+		    $known_solubility = $existing_data['s_value'];
+		} else {
+		    $known_solubility = 0;
+		}
+		$addSolubility[] = array(
+      	 	 'result_job_id' =>  (int)$result_job_id,
+       		 'job_id' => (int)$job_id,
+       		 'ssystem_name' => $ssystem_name,
+			 'known_solubility' => $known_solubility,
+			 'predicted_solubility' => $tencmgml,
+			 'temp' => '25',
+			 'created_at' => date('Y-m-d H:i:s'),
+			 
+
+   		 );
 	}
 }	
 		// Insert the data using batch insert
 
 		$this->db->insert_batch('results_data_25', $data);
+
+		$this->db->insert_batch('solubility_corrected_predicted_data', $addSolubility);
 
 		$jbd = $this->projects_model->getJobdetails($id);
 		$exists	=    $this->projects_model->job_exists($jbd[0]->id);
@@ -1148,6 +1339,7 @@ public function getPendingpatches($id)
 		}
 
 		$data = array();
+		$addSolubility = array();
 	
 		foreach ($results_10 as $row)  {  // Call function to get values
 			
@@ -1203,11 +1395,39 @@ public function getPendingpatches($id)
 
 
    		 );
+
+
+
+   	 	/*----------Solubility prediction data for 10-------------*/
+
+		$existing_data = $this->db->get_where('solubility_correction_data', array(
+		    'job_id' => $job_id,
+		    's_name' => $ssystem_name,
+		    'temp' => '50' // Assuming 'temp' is another column you want to match
+		))->row_array();
+		if (!empty($existing_data)) {
+		    $known_solubility = $existing_data['s_value'];
+		} else {
+		    $known_solubility = 0;
+		}
+		$addSolubility[] = array(
+      	 	 'result_job_id' =>  (int)$result_job_id,
+       		 'job_id' => (int)$job_id,
+       		 'ssystem_name' => $ssystem_name,
+			 'known_solubility' => $known_solubility,
+			 'predicted_solubility' => $fmgml,
+			 'temp' => '50',
+			 'created_at' => date('Y-m-d H:i:s'),
+			 
+
+   		 );
 	}
 }
 		// Insert the data using batch insert
 
 		$this->db->insert_batch('results_data_50', $data);
+		
+		$this->db->insert_batch('solubility_corrected_predicted_data', $addSolubility);
 
 		$jbd = $this->projects_model->getJobdetails($id);
 		$exists	=    $this->projects_model->job_exists($jbd[0]->id);
@@ -1253,6 +1473,35 @@ if($jbd) {
 	->join('job_results_count', 'job_status.job_id = job_results_count.job_id')
 	->where('job_status.job_id', $jbd[0]->id)
 	->get();
+
+	//echo $this->db->last_query(); 
+if ($query->num_rows() > 0) {
+	$rows = $query->result();
+
+	foreach ($rows as $row) {
+		if ($row->status != 'Completed') {
+			return false; // Status is not completed for at least one row
+		}
+	}
+	return true; // Status is completed for all rows
+}
+
+return false; // No rows found
+
+
+	}
+		
+}
+public function checkjobphinserts($id) {
+		$jbd = $this->projects_model->getJobdetails($id);
+if($jbd) {	
+	
+	
+	$query = $this->db->select('job_ph_status.status')
+	->from('job_ph_status')
+	->join('job_results_ph_count', 'job_ph_status.job_id = job_results_ph_count.job_id')
+	->where('job_ph_status.job_id', $jbd[0]->id)
+	->get();
 	//echo $this->db->last_query(); 
 if ($query->num_rows() > 0) {
 	$rows = $query->result();
@@ -1271,6 +1520,122 @@ return false; // No rows found
 		
 }
 
+
+
+/*-------------Insert Ph Results---------------------*/
+public function insertphresults($id,$temp) {
+
+		if($temp== '10'){
+			$query = $this->db->query("select sm.id,jr.solvents, sm.solvent,jr.result_type, jr.pure_data1 as pdata,jr.job_id,jr.id as jbid from ph_solvents_commands sm, job_ph_results jr, jobs_master jm where jr.input_temp_10 = 10  and sm.id=jr.s_id and jr.solvent_result not like '%Traceback%' and jr.solvent_result <>'' and jm.id=jr.job_id  and jm.project_id=".$id);
+			
+			$results_10 = $query->result();
+			
+			
+		}
+		if($temp== '25'){
+			$query = $this->db->query("select sm.id,jr.solvents, sm.solvent,jr.result_type, jr.pure_data1 as pdata,jr.job_id,jr.id as jbid from ph_solvents_commands sm, job_ph_results jr, jobs_master jm where jr.input_temp_20 = 25  and sm.id=jr.s_id and jr.solvent_result not like '%Traceback%' and jr.solvent_result <>'' and jm.id=jr.job_id  and jm.project_id=".$id);
+			
+			
+			$results_10 = $query->result();
+			
+		
+		}
+		if($temp== '50'){
+			$query = $this->db->query("select sm.id,jr.solvents, sm.solvent,jr.result_type, jr.pure_data1 as pdata,jr.job_id,jr.id as jbid from ph_solvents_commands sm, job_ph_results jr, jobs_master jm where jr.input_temp_50 = 50  and sm.id=jr.s_id and jr.solvent_result not like '%Traceback%' and jr.solvent_result <>'' and jm.id=jr.job_id  and jm.project_id=".$id);
+			
+			$results_10 = $query->result();
+			
+		
+		}
+		
+		
+		$jbd = $this->projects_model->getJobdetails($id);
+		$exists	=    $this->projects_model->job_ph_exists($jbd[0]->id);
+		if($exists) {
+			$datae = array(
+				'input_10' => 'Yes',
+				'status' => 'Pending'
+			);
+
+			$this->db->where('job_id', $jbd[0]->id);
+			$this->db->update('job_ph_status', $datae);
+
+		}
+		else {
+			$datae = array(
+				'job_id' => $jbd[0]->id,
+				'input_10' => 'Yes',
+				'status' => 'Pending'
+			);
+
+			$this->db->insert('job_ph_status', $datae);
+		}
+
+		$data = array();
+		$addSolubility = array();
+	
+		foreach ($results_10 as $row)  {  // Call function to get values
+  
+		$result_job_id = $row->jbid;
+		$job_id = $row->job_id;
+		$ssystem_name = $row->solvents;
+		if (!empty($row->pdata)) {
+
+		$at10 = $this->projects_model->getfirstvalue10($row->pdata);
+		$lat10 = $this->projects_model->getlat10($row->pdata);
+		$tencmgml = $this->projects_model->get10mgmlcal($row->pdata,$row->job_id);
+		
+    // Add data to the array
+   	 	$data[] = array(
+      	 	 'result_job_id' =>  (int)$result_job_id,
+       		 'job_id' => (int)$job_id,
+       		 'ssystem_name' => $ssystem_name,
+			 'at' => $at10,
+			 'lat' => $lat10,
+			 'cmgml' => $tencmgml,
+			 'temp' => $temp,
+			 'wt_fraction' => $pureDataField
+
+   		 );
+
+
+		
+		}
+	}	
+		// Insert the data using batch insert
+
+		$this->db->insert_batch('ph_solubility_results', $data);
+
+		$exists	=    $this->projects_model->job_ph_exists($jbd[0]->id);
+		
+
+		if($exists) {
+			
+			$datae = array(
+				'input_10' => 'Yes',
+				'status' => 'Completed'
+			);
+
+			$this->db->where('job_id', $jbd[0]->id);
+			$this->db->update('job_ph_status', $datae);
+
+		}
+		else {
+			$datae = array(
+				'job_id' => $jbd[0]->id,
+				'input_10' => 'Yes',
+				'status' => 'Completed'
+			);
+
+			$this->db->insert('job_ph_status', $datae);
+		}
+
+		
+	
+	echo "".$temp." Done ";
+		
+		
+	}
 
 /*-------------check job inseted in all 10,25,50 results table*/
 public function checkjobinsertornot($id) {
@@ -1296,6 +1661,46 @@ public function checkjobinsertornot($id) {
 	}
 		
 }
+
+public function checkjobphinsertornot($id) {
+	$jbd = $this->projects_model->getJobdetails1($id);
+		if($jbd) {	
+			$query = $this->db->select('status')
+			->from('job_results_ph_count')
+			->where('job_results_ph_count.job_id', $jbd[0]->id)
+			->get();
+			//echo $this->db->last_query(); 
+		if ($query->num_rows() > 0) {
+			$rows = $query->result();
+			foreach ($rows as $row) {
+				if ($row->status != 'Completed') {
+					return false; // Status is not completed for at least one row
+				}
+			}
+			return true; // Status is completed for all rows
+		}
+		return false; // No rows found
+
+
+	}
+		
+}
+
+	public function checkjobphinsertcheck($id) {
+		$query = $this->db->select('status')
+	    ->from('job_results_ph_count')
+	    ->where('job_results_ph_count.job_id', $id)
+	    ->where('job_results_ph_count.status', 'Completed')
+	    ->get();
+
+		if ($query->num_rows() >= 3) {
+		   return true;
+		} else{
+			return false; // No rows found, so return false
+		}
+
+			
+	}
 
 
 			public function checkjobinsertsA($id) {
@@ -1473,6 +1878,17 @@ exit;
 		$jbd = $this->projects_model->getJobdetails($id);
 		$query = $this->db->query("select rd50.result_job_id,rd50.job_id,rd50.ssystem_name,rd50.50cmgml,rd50.50cvl,rd50.50cyl, rd50.wt_fraction from results_data_50 rd50, jobs_master jm where rd50.job_id=jm.id and rd50.job_id=".$jbd[0]->id);
 		
+		if(!empty($query) && $query->num_rows() > 0){
+			return $query->result();
+		}
+	}
+
+	public function getresultsphdatai($id,$temp)
+	{
+		ini_set('memory_limit', '-1');
+		$jbd = $this->projects_model->getJobdetails($id);
+		$query = $this->db->query("select rd.result_job_id, rd.job_id,rd.ssystem_name,rd.cmgml, rd.wt_fraction from ph_solubility_results rd, jobs_master jm where rd.job_id=jm.id and rd.job_id=".$jbd[0]->id." and rd.temp=".$temp );
+		//echo $this->db->last_query();
 		if(!empty($query) && $query->num_rows() > 0){
 			return $query->result();
 		}
@@ -1818,6 +2234,14 @@ public function get10mgdata($jid,$w1,$temp){
 		
         return $query->result_array();
 	}
+	public function getjobscompletedSol($solvent)
+	{
+		$query = $this->db->query("SELECT DISTINCT(pr.id) as pid, pr.project_name FROM projects pr, jobs_master jm, job_results_count jrc WHERE pr.id=jm.project_id AND jrc.job_id=jm.id AND jrc.status='Completed' AND jrc.solvent_type='$solvent' ORDER BY pid DESC");
+
+
+		
+        return $query->result_array();
+	}
 
 	public function get10cYforscatter($val)
 	{
@@ -1872,6 +2296,36 @@ public function get10mgdata($jid,$w1,$temp){
 		}
 
 	}
+	public function checkPhjobcompleted($id) {
+		//echo $id;
+
+		$query = $this->db->query("select jrc.status from jobs_master jm,job_results_ph_count jrc where jrc.job_id=jm.id and jm.project_id=".$id);
+
+		//echo $this->db->last_query();
+		// validate user
+		if(!empty($query) && $query->num_rows() > 0){
+			//echo $query->num_rows();
+			$checkjob = $query->result_array();
+			$allCompleted = true;
+			if($checkjob) {
+			foreach($checkjob as $status) {
+				if($status['status'] !== "Completed") {
+					$allCompleted = false;
+					break;
+				}
+			}
+			
+			if($allCompleted) {
+			  return 1;
+			} else {
+			  return 0;
+			}
+			}
+
+			//return $query->result_array();
+		}
+
+	}
 
 	public function getresults($id) {
 
@@ -1879,10 +2333,22 @@ public function get10mgdata($jid,$w1,$temp){
 		if($query->num_rows() > 0)
 		return $query->result();
 	}
+	public function getresultsPh($id) {
+
+		$query = $this->db->query("SELECT DISTINCT(jrc.solvent_type) FROM `jobs_master` jm, job_ph_results jr, 	job_results_ph_count jrc where jm.id=jr.job_id and jr.job_id=jrc.job_id and jm.project_id=$id");
+		if($query->num_rows() > 0)
+		return $query->result();
+	}
 
 	public function getresultsfull($id,$jid,$resulttype) {
 		//$query = $this->db->query("SELECT jr.solvents,jr.solvent_result_name,jr.solvent_result FROM `jobs_master` jm, job_results jr, job_results_count jrc where jm.id=jr.job_id and jr.job_id=jrc.job_id and jm.project_id=$id and jr.job_id=$jid and jr.result_type='".$resulttype."'");
 		$query = $this->db->query("SELECT * FROM job_results where result_type='".$resulttype."' and job_id=$jid");
+		//echo $this->db->last_query();
+		return $query->result_array();
+	}
+	public function getresultsfullPh($id,$jid,$resulttype) {
+		//$query = $this->db->query("SELECT jr.solvents,jr.solvent_result_name,jr.solvent_result FROM `jobs_master` jm, job_results jr, job_results_count jrc where jm.id=jr.job_id and jr.job_id=jrc.job_id and jm.project_id=$id and jr.job_id=$jid and jr.result_type='".$resulttype."'");
+		$query = $this->db->query("SELECT * FROM job_ph_results where result_type='".$resulttype."' and job_id=$jid");
 		//echo $this->db->last_query();
 		return $query->result_array();
 	}
@@ -1906,6 +2372,18 @@ public function get10mgdata($jid,$w1,$temp){
 		$this->db->from('jobs_master');
 		//$this->db->join('tbl_lining', 'products.lining=tbl_lining.id', 'left');
 		$this->db->where('id', $id);  // Also mention table name here
+		$query = $this->db->get();    
+		//echo $this->db->last_query();
+		if($query->num_rows() > 0)
+		return $query->result();
+
+	}
+	public function solubiltyDataforCorrection($id) {
+
+		$this->db->select('*');
+		$this->db->from('solubility_correction_data');
+		//$this->db->join('tbl_lining', 'products.lining=tbl_lining.id', 'left');
+		$this->db->where('job_id', $id);  // Also mention table name here
 		$query = $this->db->get();    
 		//echo $this->db->last_query();
 		if($query->num_rows() > 0)
@@ -1984,6 +2462,209 @@ public function get10mgdata($jid,$w1,$temp){
 		//return $query->result();
 
 	}
+
+	public function insertresults10knownsolu($id) {
+
+
+		$pureDataFields = array('pure_data1', 'pure_data2', 'pure_data3', 'pure_data4', 'pure_data5');
+
+		foreach ($pureDataFields as $pureDataField) {
+	
+			$query = $this->db->query("SELECT sm.w1_density,jr.solvents, sm.w1_solvent_system,jr.result_type, jr.$pureDataField as pdata, jr.job_id, jr.id as jbid 
+				FROM solvents_master sm, job_results jr, jobs_master jm 
+				WHERE jr.input_temp_10 = 10 AND sm.s_id=jr.s_id 
+					AND jr.solvent_result NOT LIKE '%Traceback%' AND jr.solvent_result <>'' 
+					AND jm.id=jr.job_id AND jm.id=".$id);
+
+		//$query = $this->db->query("select sm.w1_density,jr.solvents, sm.w1_solvent_system, jr.pure_data1,jr.job_id,jr.id as jbid from solvents_master sm, job_results jr, jobs_master jm where jr.input_temp_10 = 10  and sm.s_id=jr.s_id and jr.solvent_result not like '%Traceback%' and jr.solvent_result <>'' and jm.id=jr.job_id  and jm.project_id=".$id);
+		$results_10 = $query->result();
+		//echo $this->db->last_query();
+		$jbd = $this->projects_model->getJobdetails($id);
+		$addSolubility = array();
+	
+		foreach ($results_10 as $row)  {  // Call function to get values
+		$result_job_id = $row->jbid;
+		$job_id = $row->job_id;
+		$ssystem_name = $row->solvents;
+		if (!empty($row->pdata)) {
+		$tencmgml = $this->projects_model->get10mgmlcal($row->pdata,$row->job_id);
+
+   	 	/*----------Solubility prediction data for 10-------------*/
+
+		$existing_data = $this->db->get_where('solubility_correction_data', array(
+		    'job_id' => $job_id,
+		    's_name' => $ssystem_name,
+		    'temp' => '10' // Assuming 'temp' is another column you want to match
+		))->row_array();
+		if (!empty($existing_data)) {
+		    $known_solubility = $existing_data['s_value'];
+		} else {
+		    $known_solubility = 0;
+		}
+		$addSolubility[] = array(
+      	 	 'result_job_id' =>  (int)$result_job_id,
+       		 'job_id' => (int)$job_id,
+       		 'ssystem_name' => $ssystem_name,
+			 'known_solubility' => $known_solubility,
+			 'predicted_solubility' => $tencmgml,
+			 'temp' => '10',
+			 'created_at' => date('Y-m-d H:i:s'),
+			 
+
+   		 );
+		
+		}
+		}	
+		// Insert the data using batch insert
+
+	
+		/*----------Solubility prediction data for 10-------------*/
+		$this->db->insert_batch('solubility_corrected_predicted_data', $addSolubility);
+
+
+		
+		}
+		echo "10 Done ";
+	}
+
+	public function insertresults25knownsolu($id) {
+
+
+		$pureDataFields = array('pure_data1', 'pure_data2', 'pure_data3', 'pure_data4', 'pure_data5');
+
+		foreach ($pureDataFields as $pureDataField) {
+
+		$query = $this->db->query("select sm.w1_density,jr.solvents, sm.w1_solvent_system,jr.result_type, jr.$pureDataField as pdata,jr.job_id,jr.id as jbid from solvents_master sm, job_results jr, jobs_master jm where jr.input_temp_20 = 25  and sm.s_id=jr.s_id and jr.solvent_result not like '%Traceback%' and jr.solvent_result <>'' and jm.id=jr.job_id  and jm.id=".$id);
+		$results_10 = $query->result();
+		$jbd = $this->projects_model->getJobdetails($id);
+		
+		$addSolubility = array();
+	
+		foreach ($results_10 as $row)  {  // Call function to get values
+  
+		$result_job_id = $row->jbid;
+		$job_id = $row->job_id;
+		$ssystem_name = $row->solvents;
+		if (!empty($row->pdata)) {
+		$tencmgml = $this->projects_model->get10mgmlcal($row->pdata,$row->job_id);
+	
+   	 	/*----------Solubility prediction data for 10-------------*/
+
+		$existing_data = $this->db->get_where('solubility_correction_data', array(
+		    'job_id' => $job_id,
+		    's_name' => $ssystem_name,
+		    'temp' => '25' // Assuming 'temp' is another column you want to match
+		))->row_array();
+		if (!empty($existing_data)) {
+		    $known_solubility = $existing_data['s_value'];
+		} else {
+		    $known_solubility = 0;
+		}
+		$addSolubility[] = array(
+      	 	 'result_job_id' =>  (int)$result_job_id,
+       		 'job_id' => (int)$job_id,
+       		 'ssystem_name' => $ssystem_name,
+			 'known_solubility' => $known_solubility,
+			 'predicted_solubility' => $tencmgml,
+			 'temp' => '25',
+			 'created_at' => date('Y-m-d H:i:s'),
+			 
+
+   		 );
+	}
+	}	
+		
+		$this->db->insert_batch('solubility_corrected_predicted_data', $addSolubility);
+
+		
+
+	}		
+		echo "25 Done ";
+		
+	}
+
+	public function insertresults50knownsolu($id) {
+
+		$pureDataFields = array('pure_data1', 'pure_data2', 'pure_data3', 'pure_data4', 'pure_data5');
+
+		foreach ($pureDataFields as $pureDataField) {
+
+		$query = $this->db->query("select sm.w1_density,jr.solvents, sm.w1_solvent_system,jr.result_type, jr.$pureDataField as pdata,jr.job_id,jr.id as jbid from solvents_master sm, job_results jr, jobs_master jm where jr.input_temp_50 = 50  and sm.s_id=jr.s_id and jr.solvent_result not like '%Traceback%' and jr.solvent_result <>'' and jm.id=jr.job_id  and jm.id=".$id);
+		$results_10 = $query->result();
+		$jbd = $this->projects_model->getJobdetails($id);
+		
+		$addSolubility = array();
+	
+		foreach ($results_10 as $row)  {  // Call function to get values
+			
+
+		$result_job_id = $row->jbid;
+		$job_id = $row->job_id;
+		$ssystem_name = $row->solvents;
+		if (!empty($row->pdata)) {
+		$tencmgml = $this->projects_model->get10mgmlcal($row->pdata,$row->job_id);
+		/*---get 10 results data /This code return by sonam for swapping 50 ->10 data--*/
+  		$results_data_10 = $this->db->select('*');
+		$this->db->from('results_data_10');
+		$this->db->where('job_id ', $job_id);
+		$this->db->where('ssystem_name', $row->solvents);
+		$query = $this->db->get();    
+		$valdata = $query->row();
+
+		
+		$mg_ml_ten_val = $valdata->{'10cmgml'};
+		$yield_ten_val = $valdata->{'10cyl'};
+		/*---compare 10 ,50 mg/ml value results data--*/
+		
+
+		if($mg_ml_ten_val > $tencmgml)  {
+			
+			$fmgml = $mg_ml_ten_val;	
+			$fmgyield = $yield_ten_val;
+			$this->db->update('results_data_10', array('10cmgml' => $tencmgml,'10cyl'=> $tencyl), array('id' => $valdata->id));
+		} else{
+			$fmgml = $tencmgml;
+			$fmgyield = $tencyl;
+		}
+	
+
+   	 	/*----------Solubility prediction data for 10-------------*/
+
+		$existing_data = $this->db->get_where('solubility_correction_data', array(
+		    'job_id' => $job_id,
+		    's_name' => $ssystem_name,
+		    'temp' => '50' // Assuming 'temp' is another column you want to match
+		))->row_array();
+		if (!empty($existing_data)) {
+		    $known_solubility = $existing_data['s_value'];
+		} else {
+		    $known_solubility = 0;
+		}
+		$addSolubility[] = array(
+      	 	 'result_job_id' =>  (int)$result_job_id,
+       		 'job_id' => (int)$job_id,
+       		 'ssystem_name' => $ssystem_name,
+			 'known_solubility' => $known_solubility,
+			 'predicted_solubility' => $fmgml,
+			 'temp' => '50',
+			 'created_at' => date('Y-m-d H:i:s'),
+			 
+
+   		 );
+	}
+	}
+		
+		$this->db->insert_batch('solubility_corrected_predicted_data', $addSolubility);
+
+		
+
+
+		
+	}
+		
+		echo "50 Done ";
+	}
+		
 
 	public function login($row, $remember = false)
 	{

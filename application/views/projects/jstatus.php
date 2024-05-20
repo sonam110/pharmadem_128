@@ -102,7 +102,15 @@ echo $diff->s.' Seconds<br>';
  <?php if(!$this->projects_model->checkactivityexists($jstatus[0]->project_id)) { ?>
  <a href="<?php echo url('projects') ?>/activity/<?php echo $jstatus[0]->id;?>" class="btn btn-warning btn-sm">Run Solubility For This DEM File</a>
  <a href="<?php echo url('projects') ?>/custom/<?php echo $jstatus[0]->id;?>" class="btn btn-success btn-sm">Run Custom Solubility For This DEM File</a>
-  <?php } else { echo "<h3 style=color:green>Already Acitivity is Finished, Please Check Results</h3>";}?>                          
+
+ 
+  <?php } else { echo "<h3 style=color:green>Already Acitivity is Finished, Please Check Results</h3>";}?>
+   <?php if(!$this->projects_model->checkactivityphexists($jstatus[0]->project_id)) { ?>
+    <a href="javascript:;" onclick="run_ph_solubility(<?php echo $jstatus[0]->id ?>);" class="btn btn-info btn-sm">pH and Biorelevant Solubility</a>
+    <div id="cosmo"></div>
+     <div id="loading-image" style="display:none">Please Wait...<img src="<?php echo base_url();?>icons8-dots-loading.gif" /></div>  <?php } else { echo "<h4 style=color:green>Already PH Acitivity is Finished, Please Check Results</h4>";}?>
+
+
                           <?php } ?><hr>
                             <?php if($jstatus[0]->cosmo_status=="Processing" || $jstatus[0]->cosmo_status=="Pending") { ?>
                               <div id="cosmo"><a href="#" onclick="updateUserStatus('<?php echo $jstatus[0]->id ?>')" class="btn btn-success btn-sm">Check Job Status</a></div>
@@ -180,6 +188,37 @@ print("<pre>".print_r($jstatus[0]->cosmo_data,true)."</pre>");
 
 <script>
 
+function run_ph_solubility(job_id) {
+   $('#loading-image').show();
+    $.ajax({
+        url: "<?php echo site_url('projects/phSolubility'); ?>",
+        type: "POST",
+        data: { job_id: job_id},
+        dataType: "json",
+        success: function(response) {
+            if(response=="done") {
+                $('#loading-image').hide();
+                document.getElementById('cosmo').innerHTML="<h3>Activity Executed Successfully </h3>"; 
+                console.log(response);
+                 window.location.href = '<?php echo url('projects') ?>';
+            }
+        },
+        error: function(xhr, status, error) {
+            if (xhr.responseJSON && xhr.responseJSON.errors) {
+                $.each(xhr.responseJSON.errors, function(key, item) {
+                    alert(item);
+                });
+            } else {
+                $('#loading-image').hide();
+                document.getElementById('cosmo').innerHTML="<h3>Activity Executed Successfully </h3>"; 
+                 window.location.href = '<?php echo url('projects') ?>';
+               
+            }
+        },
+    });
+}
+
+ 
 window.updateUserStatus = (id) => {
  
  $('#loading-image').show();

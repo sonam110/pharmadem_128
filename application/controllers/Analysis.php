@@ -36,6 +36,46 @@ class Analysis extends MY_Controller {
         $this->load->view('analysis/scatter', $this->page_data);
     
     }
+    public function get_projects_by_solvent(){
+        $solvent = $this->input->post('solvent');
+
+        $project_id = $this->input->post('project_id');
+        $jobs_completed = $this->projects_model->getjobscompletedSol($solvent);
+
+        $select_html = '<select name="project_id[]" id="project_id" class="form-control select2" required multiple size="10">';
+        foreach ($jobs_completed as $row) {
+            $check_job_inserts = $this->projects_model->checkjobinserts($row['pid']);
+            $sel = !empty($project_id) && in_array($row['pid'], (array)$project_id) ? 'selected' : '';
+            if ($check_job_inserts) {
+                $select_html .= '<option value="' . $row['pid'] . '" ' . $sel . '>' . $row['project_name'] . '</option>';
+            }
+        }
+        $select_html .= '</select>';
+
+        // Return the HTML string
+        echo $select_html;
+
+    }
+    public function get_corr_projects_by_solvent(){
+        $solvent = $this->input->post('solvent');
+
+        $project_id = $this->input->post('project_id');
+        $jobs_completed = $this->projects_model->getjobscompletedSol($solvent);
+        
+        $select_html = '<select name="project_cor_id[]" id="project_cor_id" class="form-control select2" required multiple size="10">';
+        foreach ($jobs_completed as $row) {
+            $check_job_inserts = $this->projects_model->checkjobinserts($row['pid']);
+            $sel = !empty($project_id) && in_array($row['pid'], (array)$project_id) ? 'selected' : '';
+            if ($check_job_inserts) {
+                $select_html .= '<option value="' . $row['pid'] . '" ' . $sel . '>Corrected-' . $row['project_name'] . '</option>';
+            }
+        }
+        $select_html .= '</select>';
+
+        // Return the HTML string
+        echo $select_html;
+
+    }
 
     public function scatternew() {
 
@@ -89,6 +129,7 @@ class Analysis extends MY_Controller {
          $this->load->view('analysis/barnew1', $this->page_data);
      
      }
+     
 
 
      
@@ -116,7 +157,7 @@ class Analysis extends MY_Controller {
                     // Create a new query for each table
                     $this->db->select('
                         ' . $table . '.*, 
-                        job_results.s_id AS job_s_id, 
+                        job_results.s_id AS job_s_id, job_results.result_type,
                         solvents_master.w1_solvent_system AS solvent_w1_solvent_system
                     ');
                     $this->db->from($table);
@@ -141,12 +182,16 @@ class Analysis extends MY_Controller {
                     //$solvent_w1_system = array_column($results, 'solvent_w1_solvent_system');
 
                     $solvent_w1_system = array_column($results, 'solvent_w1_solvent_system');
+                    $result_type = array_column($results, 'result_type');
 
                 }
         
                 // Check if solvent_w1_solvent_system exists in all three arrays
+               if($result_type<>'Tertiary-16400') {
+                // Check if solvent_w1_solvent_system exists in all three arrays
                 if (!empty($solvent_w1_system) && count(array_filter($solvent_w1_system)) === count($solvent_w1_system)) {
-					
+                }       
+
                     // Get the project name
                     $projectName = $this->projects_model->getProjectName($projectId);
         
@@ -156,13 +201,17 @@ class Analysis extends MY_Controller {
                         'results_10_ssystem_name' => array_column($results_10, 'ssystem_name'),
                         'results_10_10cvl' => array_column($results_10, '10cvl'),
                         'results_10_10cyl' => array_column($results_10, '10cyl'),
-
+                        'results_10_wt_fraction' => array_column($results_10, 'wt_fraction'),
+                        'results_10_rtype' => array_column($results_10, 'result_type'),
 
 
                         'results_25' => array_column($results_25, '25cmgml'),
                         'results_25_ssystem_name' => array_column($results_25, 'ssystem_name'),
                         'results_25_10cvl' => array_column($results_25, '25cvl'),
                         'results_25_25cyl' => array_column($results_25, '25cyl'),
+                        'results_25_wt_fraction' => array_column($results_25, 'wt_fraction'),
+                        'results_25_rtype' => array_column($results_25, 'result_type'),
+
 
 
 
@@ -170,6 +219,10 @@ class Analysis extends MY_Controller {
                         'results_50_ssystem_name' => array_column($results_50, 'ssystem_name'),
                         'results_50_50cvl' => array_column($results_50, '50cvl'),
                         'results_50_50cyl' => array_column($results_50, '50cyl'),
+                        'results_50_wt_fraction' => array_column($results_50, 'wt_fraction'),
+                        'results_50_rtype' => array_column($results_50, 'result_type'),
+
+
 
 
 
@@ -178,15 +231,139 @@ class Analysis extends MY_Controller {
 
                         'solvent_w1_solvent_system' => $solvent_w1_system,
                     ];
-                }
+                    if($result_type<>'Tertiary-16400') {
+                        
+                        }
+                    }       
             }
         }
-echo json_encode(['data' => $data], JSON_PRETTY_PRINT);
+        
+    echo json_encode(['data' => $data], JSON_PRETTY_PRINT);
 
 
         
 
-     }
+    }
+    public function getfecthCorrecteddata()
+     {
+        $selectedProjects = $this->input->post('selectedProjects');
+       
+
+        $data = [];
+        
+        if (!empty($selectedProjects)) {
+            foreach ($selectedProjects as $projectId) {
+                // Fetch data for $projectId using your queries
+                $jbd = $this->projects_model->getJobdetails($projectId);
+        
+                // Define arrays to hold results for each table for the current project
+                $results_10 = [];
+                $results_25 = [];
+                $results_50 = [];
+                $solvent_w1_system = []; // Initialize an array to hold solvent_w1_solvent_system values
+        
+                // Loop through the three tables
+                $tables = ['results_data_10', 'results_data_25', 'results_data_50'];
+                foreach ($tables as $table) {
+                    // Create a new query for each table
+                    $this->db->select('
+                        ' . $table . '.*, 
+                        job_results.s_id AS job_s_id, job_results.result_type,job_results.id AS jr_id,
+                        solvents_master.w1_solvent_system AS solvent_w1_solvent_system,solubility_corrected_predicted_data.result_job_id as result_job_id_corr,solubility_corrected_predicted_data.id as corr_id,solubility_corrected_predicted_data.known_solubility as known_solubility,solubility_corrected_predicted_data.corrected_solubility as corrected_solubility,solubility_corrected_predicted_data.ssystem_name as c_ssystem_name,solubility_corrected_predicted_data.result_job_id as c_result_job_id
+                    ');
+                    $this->db->from($table);
+                    $this->db->join('job_results', 'job_results.id = ' . $table . '.result_job_id', 'left');
+                    $this->db->join('solubility_corrected_predicted_data', 'solubility_corrected_predicted_data.result_job_id = job_results.id', 'left');
+                    $this->db->join('solvents_master', 'solvents_master.s_id = job_results.s_id', 'left');
+                
+                    $this->db->where($table . '.job_id', $jbd[0]->id);
+
+                    //$this->db->limit(150);
+        
+                    // Execute the query and append results to the respective array
+                    $query = $this->db->get();
+                      
+                    $results = $query->result();
+                   
+                    if ($table === 'results_data_10') {
+                        $results_10 = $results;
+                    } elseif ($table === 'results_data_25') {
+                        $results_25 = $results;
+                    } elseif ($table === 'results_data_50') {
+                        $results_50 = $results;
+                    }
+        
+                    // Extract solvent_w1_solvent_system values and store them in the solvent_w1_system array
+                    //$solvent_w1_system = array_column($results, 'solvent_w1_solvent_system');
+
+                    $solvent_w1_system = array_column($results, 'solvent_w1_solvent_system');
+                    $result_type = array_column($results, 'result_type');
+
+                }
+        
+                // Check if solvent_w1_solvent_system exists in all three arrays
+               if($result_type<>'Tertiary-16400') {
+                // Check if solvent_w1_solvent_system exists in all three arrays
+                if (!empty($solvent_w1_system) && count(array_filter($solvent_w1_system)) === count($solvent_w1_system)) {
+                }       
+
+                    // Get the project name
+                    $projectName = $this->projects_model->getProjectName($projectId);
+                    
+        
+                    $data[] = [
+                        'projectName' => $projectName,
+                        'results_10' => array_column($results_10, '10cmgml'),
+                        'results_10_known' => array_column($results_10, 'known_solubility'),
+                        'results_10_correct' => array_column($results_10, 'corrected_solubility'),
+                        'results_10_ssystem_name' => array_column($results_10, 'ssystem_name'),
+                        'results_10_wt_fraction' => array_column($results_10, 'wt_fraction'),
+                        'results_10_rtype' => array_column($results_10, 'result_type'),
+                        
+
+
+                        'results_25' => array_column($results_25, '25cmgml'),
+                        'results_25_known' => array_column($results_25, 'known_solubility'),
+                        'results_25_correct' => array_column($results_25, 'corrected_solubility'),
+                        'results_25_ssystem_name' => array_column($results_25, 'ssystem_name'),
+                       
+                        'results_25_wt_fraction' => array_column($results_25, 'wt_fraction'),
+                        'results_25_rtype' => array_column($results_25, 'result_type'),
+
+
+
+
+                        'results_50' => array_column($results_50, '50cmgml'),
+                        'results_50_known' => array_column($results_50, 'known_solubility'),
+                        'results_50_correct' => array_column($results_50, 'corrected_solubility'),
+                        'results_50_ssystem_name' => array_column($results_50, 'ssystem_name'),
+                        
+                        'results_50_wt_fraction' => array_column($results_50, 'wt_fraction'),
+                        'results_50_rtype' => array_column($results_50, 'result_type'),
+
+
+
+
+
+                        'results_10_id' => array_column($results_10, 'id'),
+                        'results_50_id' => array_column($results_50, 'id'),
+
+                        'solvent_w1_solvent_system' => $solvent_w1_system,
+                    ];
+                    if($result_type<>'Tertiary-16400') {
+                        
+                        }
+                    }       
+            }
+        }
+        
+    echo json_encode(['data' => $data], JSON_PRETTY_PRINT);
+
+
+        
+
+    }
+
 
 public function generateCsv()
     {
@@ -212,7 +389,7 @@ public function generateCsv()
 		            // Create a new query for each table
 		        	$this->db->select('
 		        		' . $table . '.*, 
-		        		job_results.s_id AS job_s_id, job_results.id AS job_res_id,
+		        		job_results.s_id AS job_s_id,job_results.result_type, job_results.id AS job_res_id,
 		        		solvents_master.w1_solvent_system AS solvent_w1_solvent_system
 		        		');
 		        	$this->db->from($table);
@@ -242,19 +419,56 @@ public function generateCsv()
 		            // Get the project name
 		        	$projectName = $this->projects_model->getProjectName($projectId);
 
+                    $pureDataArray = [
+                        'pure_data1' => '(0.0, 0.1, 0.9)',
+                        'pure_data2' => '(0.0, 0.25, 0.75)',
+                        'pure_data3' => '(0.0, 0.5, 0.5)',
+                        'pure_data4' => '(0.0, 0.75, 0.25)',
+                        'pure_data5' => '(0.0, 0.9, 0.1)',
+                    ];
+
+                    $terDataArray = [
+                        'pure_data1' => '(0.0, 0.1, 0.75, 0.15)',
+                        'pure_data2' => '(0.0, 0.25, 0.50, 0.25)',
+                        'pure_data3' => '(0.0, 0.5, 0.25, 0.25)'
+                    ];
+
 		        	foreach ($solvent_w1_system as $index => $solvent) {
-		        		$data[$solvent][$projectName] = [
+                        if(!empty($results_10[$index])){
+                        $solventName = $results_10[$index]->{'ssystem_name'};
+                       
+                        if ($results_10[$index]->result_type != "Pure_68" && $results_10[$index]->result_type != "Tertiary-16400") {
+                          
+                            $solventName = $solventName . "-" . str_replace("-", $pureDataArray[$results_10[$index]->wt_fraction], $pureDataArray[$results_10[$index]->wt_fraction]);
+
+
+                        } elseif ($results_10[$index]->result_type === "Tertiary-16400") {
+                          
+                            $solventName = $solventName . "-" . str_replace("-", $terDataArray[$results_10[$index]->wt_fraction], $terDataArray[$results_10[$index]->wt_fraction]);
+                        } else {
+                            $solventName = $results_10[$index]->{'ssystem_name'};
+                        }
+
+                        
+		        		$data[$solventName][$projectName] = [
 		        			'10_cmgml' => $results_10[$index]->{'10cmgml'},
 		        			'10_cvl' => $results_10[$index]->{'10cvl'},
 		        			'10_cyl' => $results_10[$index]->{'10cyl'},
 		        			'25_cmgml' => $results_25[$index]->{'25cmgml'},
 		        			'25_cvl' => $results_25[$index]->{'25cvl'},
 		        			'25_cyl' => $results_25[$index]->{'25cyl'},
+                            'results_25_wt_fraction' => $results_25[$index]->{'wt_fraction'},
+                            'results_25_ssystem_name' => $results_25[$index]->{'ssystem_name'},
+                            'results_25_rtype' => $results_10[$index]->{'result_type'},
 		        			'50_cmgml' => $results_50[$index]->{'50cmgml'},
 		        			'50_cvl' => $results_50[$index]->{'50cvl'},
 		        			'50_cyl' => $results_50[$index]->{'50cyl'},
+                            'results_50_wt_fraction' => $results_50[$index]->{'wt_fraction'},
+                            'results_50_ssystem_name' => $results_50[$index]->{'ssystem_name'},
+                            'results_50_rtype' => $results_10[$index]->{'result_type'},
 		        		];
 		        	}
+                   }
 		        }
 		    }
 		}
@@ -267,10 +481,11 @@ public function generateCsv()
 		$csvData = "Solvent Name" . $delimiter;
 		$projects = array_keys($data[array_key_first($data)]);
 		foreach ($projects as $project) {
-			$csvData .= "$project-10 C mgml{$delimiter}$project-10 Cvl{$delimiter}$project-10 Cyl{$delimiter}$project-25C mgml{$delimiter}$project-25 Cvl{$delimiter}$project-25 Cyl{$delimiter}$project-50C mgml{$delimiter}$project-50 Cvl{$delimiter}$project-50 Cyl{$delimiter}";
+			$csvData .= "$project (10Cmgml){$delimiter}$project (10Cvl){$delimiter}$project (10Cyl){$delimiter}$project(25Cmgml){$delimiter}$project (25Cvl){$delimiter}$project (25Cyl){$delimiter}$project (50Cmgml){$delimiter}$project (50Cvl){$delimiter}$project (50Cyl){$delimiter}";
 		}
 		$csvData = rtrim($csvData, $delimiter) . "\n";
 		foreach ($data as $solvent => $projects) {
+           
 		    // Encapsulate entire CSV field containing the solvent name in double quotes
 			$csvData .= '"' . str_replace('"', '""', $solvent) . '"' . $delimiter;
 			foreach ($projects as $project => $results) {
@@ -807,7 +1022,7 @@ $data = [
           $ycyl=$this->input->post('xRange');
           $xcvl=$this->input->post('yRange');
           
-		$jbd = $this->projects_model->getJobdetails($project_id);
+        $jbd = $this->projects_model->getJobdetails($project_id);
 
 
         if($tempa==50) {
@@ -850,8 +1065,8 @@ $this->db->where('results_data_50.50cvl <=', (float) $ycyl);
        
             $this->db->join('solvents_master sm', 'jr.s_id = sm.s_id', 'inner');
             $this->db->where('results_data_25.job_id', $jbd[0]->id);
-            $this->db->where('results_data_25.25cvl >=', (float) $xcvl);
-            $this->db->where('results_data_25.25cyl <=', (float) $ycyl);
+            $this->db->where('results_data_25.25cvl <=', (float) $ycyl);
+            $this->db->where('results_data_25.25cyl >=', (float) $xcvl);
             //$this->db->limit(10);
     
             $query = $this->db->get('results_data_25'); // Replace 'your_table_name' with the actual table name
@@ -872,8 +1087,8 @@ $this->db->where('results_data_50.50cvl <=', (float) $ycyl);
        
             $this->db->join('solvents_master sm', 'jr.s_id = sm.s_id', 'inner');
         $this->db->where('results_data_10.job_id', $jbd[0]->id);
-        $this->db->where('results_data_10.10cvl >=', (float) $xcvl);
-            $this->db->where('results_data_10.10cyl <=', (float) $ycyl);
+        $this->db->where('results_data_10.10cvl <=', (float) $ycyl);
+            $this->db->where('results_data_10.10cyl >=', (float) $xcvl);
        // $this->db->limit(10);
 
         $query = $this->db->get('results_data_10'); // Replace 'your_table_name' with the actual table name
@@ -889,9 +1104,9 @@ $this->db->where('results_data_50.50cvl <=', (float) $ycyl);
         echo json_encode($dataPoints);
            }
 
-    //print_r($this->db->last_query());	
+    //print_r($this->db->last_query()); 
 
     }
-
+    
 
 }

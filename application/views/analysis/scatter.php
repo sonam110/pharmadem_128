@@ -78,10 +78,10 @@ defined('BASEPATH') OR exit('No direct script access allowed'); ?>
           </div>
     </div>
    <div class="col-md-2 column">
-	<div class="form-group">
-		<label for="formClient-Role">&nbsp;</label>
-   		<button id="plotgen" class="form-control" style="background-color:#9bc0e7; text-color:#212529">Generate Plot</button>
-	</div>
+  <div class="form-group">
+    <label for="formClient-Role">&nbsp;</label>
+      <button id="plotgen" class="form-control" style="background-color:#9bc0e7; text-color:#212529">Generate Plot</button>
+  </div>
    </div>
   </div>
 </div>
@@ -97,11 +97,11 @@ $backgroundColor10 = '#' . substr(md5(rand()), 0, 6);
 </div>
 
             
-      		</div>
-      	</div>
+          </div>
+        </div>
                   </div>
                  
-                 		  
+                      
                   
                 </div>
                 <!-- /.tab-content -->
@@ -176,10 +176,10 @@ $(document).ready(function() {
     // Update the chart's options with the user-defined ranges
     scatterChart.options.scales.xAxes[0].ticks.min = 0;
     //scatterChart.options.scales.xAxes[0].ticks.max = xRange;
-	scatterChart.options.scales.xAxes[0].ticks.max = yRange;
+  scatterChart.options.scales.xAxes[0].ticks.max = yRange;
     scatterChart.options.scales.yAxes[0].ticks.min = 0;
     //scatterChart.options.scales.yAxes[0].ticks.max = yRange;
-	scatterChart.options.scales.yAxes[0].ticks.max = xRange;
+  scatterChart.options.scales.yAxes[0].ticks.max = xRange;
 
     // Update the chart
     scatterChart.update();
@@ -206,21 +206,9 @@ $(document).ready(function() {
 
         success: function(dataPoints) {
 
-      if (scatterChart) {
+          if (scatterChart) {
         scatterChart.destroy();
       }
-
-      const plugin = {
-        id: 'customCanvasBackgroundColor',
-        beforeDraw: (chart, args, options) => {
-          const {ctx} = chart;
-          ctx.save();
-          ctx.globalCompositeOperation = 'destination-over';
-          ctx.fillStyle = options.color || '#99ffff';
-          ctx.fillRect(0, 0, chart.width, chart.height);
-          ctx.restore();
-        }
-      }; 
 
       // Clear the canvas element
       var canvas = document.getElementById('myChart');
@@ -260,12 +248,6 @@ $(document).ready(function() {
             },
             options: {
               responsive: true,
-              plugins: {
-                  customCanvasBackgroundColor: {
-                      color: 'white',
-                    },
-                  
-              },
               scales: {
                 yAxes: [{
                   display: true,
@@ -302,8 +284,7 @@ $(document).ready(function() {
                   }
                 }
               }
-            },
-             plugins: [plugin],
+            }
           });
 
           // Export button click event

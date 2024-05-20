@@ -1,0 +1,33 @@
+You can use Python's `scipy` library to conduct regression fitting, and then apply the obtained equation to correct the predicted data. Here's a sample code for that:
+
+```python
+import numpy as np
+from scipy.optimize import curve_fit
+
+# Assuming your experimental data is in column A and predicted data in column B of an Excel sheet
+# You can use libraries like pandas to read Excel files
+
+# Example data (replace with your actual data)
+experimental_data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+predicted_data = [1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8, 9.9, 11.0]
+
+# Define the regression model
+def linear_model(x, a, b):
+    return a * x + b
+
+# Fit the model to experimental and predicted data
+popt, _ = curve_fit(linear_model, experimental_data, predicted_data)
+
+# Extract the coefficients
+a, b = popt
+
+# Apply the equation to correct predicted data
+corrected_predicted_data = [linear_model(x, a, b) for x in experimental_data]
+
+print("Regression Equation: y =", a, "* x +", b)
+print("Corrected Predicted Data:", corrected_predicted_data)
+```
+
+This code assumes that you have already imported your experimental and predicted data from Excel and stored them in lists named `experimental_data` and `predicted_data`. You can replace the example data with your actual data.
+
+The `curve_fit` function from `scipy.optimize` is used to fit the linear regression model to the experimental and predicted data. Then, the obtained coefficients are used to correct the predicted data. Finally, it prints the regression equation and the corrected predicted data.
